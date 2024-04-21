@@ -51,4 +51,4 @@ This project also includes a reflection on the practical experiences and learnin
 - Luong Nguyen
 
 ## License
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the LICENSE file for details
