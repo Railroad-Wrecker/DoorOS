@@ -1,4 +1,5 @@
 #include "cli.h"
+#include "uart.h"
 
 #define MAX_CMD_SIZE 100
 
@@ -326,3 +327,7 @@ void autoComplete(char *buffer, int *index) {
 
     printf("\rDoorOS> %s", buffer);
 }
+
+
+
+

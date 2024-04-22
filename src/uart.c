@@ -1,46 +1,81 @@
 #include "uart.h"
 
+// Define constants for common baud rates, data bits, and stop bits
+#define BAUD_9600   9600
+#define BAUD_19200  19200
+#define BAUD_38400  38400
+#define BAUD_57600  57600
+#define BAUD_115200 115200
+
+// Data bits definitions
+#define DATA_BITS_5 5
+#define DATA_BITS_6 6
+#define DATA_BITS_7 7
+#define DATA_BITS_8 8
+
+// Stop bits definitions
+#define STOP_BITS_1 1
+#define STOP_BITS_2 2
+
 /**
- * Set baud rate and characteristics (115200 8N1) and map to GPIO
+ * Make the baud rate configurable.
  */
-void uart_init()
-{
+void uart_init(unsigned int baud_rate, unsigned int data_bits, unsigned int stop_bits) {
     unsigned int r;
+    unsigned int lcr_value;
+    const unsigned int system_clk_freq = 250000000; // System clock frequency is 250 MHz
+
+    /* Set data bits */
+    switch (data_bits) {
+        case DATA_BITS_5:
+            lcr_value = 2; // 0b10
+            break;
+        case DATA_BITS_6:
+            lcr_value = 3; // 0b11
+            break;
+        case DATA_BITS_7:
+            lcr_value = 0; // 0b00
+            break;
+        case DATA_BITS_8:
+        default:
+            lcr_value = 1; // 0b01
+            break;
+    }
+
+    /* Set stop bits */
+    if (stop_bits == STOP_BITS_2) {
+        lcr_value |= (1 << 2); // Set bit 2 for 2 stop bits
+    }
 
     /* initialize UART */
-    AUX_ENABLE |= 1;     //enable mini UART (UART1) 
-    AUX_MU_CNTL = 0;	 //stop transmitter and receiver
-    AUX_MU_LCR  = 3;     //8-bit mode (also enable bit 1 to be used for RPI3)
-    AUX_MU_MCR  = 0;	 //clear RTS (request to send)
-    AUX_MU_IER  = 0;	 //disable interrupts
-    AUX_MU_IIR  = 0xc6;  //enable and clear FIFOs
-    AUX_MU_BAUD = 270;   //configure 115200 baud rate [system_clk_freq/(baud_rate*8) - 1]
-
-    /* Note: refer to page 11 of ARM Peripherals guide for baudrate configuration 
-    (system_clk_freq is 250MHz by default) */
+    AUX_ENABLE |= 1;     // Enable mini UART (UART1)
+    AUX_MU_CNTL = 0;     // Stop transmitter and receiver
+    AUX_MU_LCR  = lcr_value; // Set data and stop bits
+    AUX_MU_MCR  = 0;     // Clear RTS (not hardware controlled)
+    AUX_MU_IER  = 0;     // Disable interrupts
+    AUX_MU_IIR  = 0xc6;  // Enable and clear FIFOs
+    AUX_MU_BAUD = system_clk_freq / (8 * baud_rate) - 1; // Configure baud rate
 
     /* map UART1 to GPIO pins 14 and 15 */
     r = GPFSEL1;
-    r &=  ~( (7 << 12)|(7 << 15) ); //clear bits 17-12 (FSEL15, FSEL14)
-    r |= (0b010 << 12)|(0b010 << 15);   //set value 0b010 (select ALT5: TXD1/RXD1)
+    r &= ~( (7 << 12)|(7 << 15) ); // Clear bits for FSEL15 and FSEL14
+    r |= (0b010 << 12)|(0b010 << 15); // Set value 0b010 (select ALT5: TXD1/RXD1)
     GPFSEL1 = r;
 
-	/* enable GPIO 14, 15 */
-#ifdef RPI3 //RPI3
-	GPPUD = 0;            //No pull up/down control
-	//Toogle clock to flush GPIO setup
-	r = 150; while(r--) { asm volatile("nop"); } //waiting 150 cycles
-	GPPUDCLK0 = (1 << 14)|(1 << 15); //enable clock for GPIO 14, 15
-	r = 150; while(r--) { asm volatile("nop"); } //waiting 150 cycles
-	GPPUDCLK0 = 0;        // flush GPIO setup
-
-#else //RPI4
-	r = GPIO_PUP_PDN_CNTRL_REG0;
-	r &= ~((3 << 28) | (3 << 30)); //No resistor is selected for GPIO 14, 15
-	GPIO_PUP_PDN_CNTRL_REG0 = r;
+    /* enable GPIO 14, 15 */
+#ifdef RPI3
+    GPPUD = 0;             // No pull up/down control
+    r = 150; while(r--) { asm volatile("nop"); } // Waiting 150 cycles
+    GPPUDCLK0 = (1 << 14)|(1 << 15); // Enable clock for GPIO 14, 15
+    r = 150; while(r--) { asm volatile("nop"); } // Waiting 150 cycles
+    GPPUDCLK0 = 0;         // Flush GPIO setup
+#else
+    r = GPIO_PUP_PDN_CNTRL_REG0;
+    r &= ~((3 << 28) | (3 << 30)); // No resistor is selected for GPIO 14, 15
+    GPIO_PUP_PDN_CNTRL_REG0 = r;
 #endif
 
-    AUX_MU_CNTL = 3;      //enable transmitter and receiver (Tx, Rx)
+    AUX_MU_CNTL = 3;       // Enable transmitter and receiver (Tx, Rx)
 }
 
 /**
@@ -131,3 +166,5 @@ void uart_dec(int num)
 
 	uart_puts(str);
 }
+
+

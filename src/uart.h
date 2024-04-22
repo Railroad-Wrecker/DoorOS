@@ -15,7 +15,7 @@
 #define AUX_MU_BAUD     (* (volatile unsigned int*)(MMIO_BASE+0x00215068))
 
 /* Function prototypes */
-void uart_init();
+void uart_init(unsigned int baud_rate, unsigned int data_bits, unsigned int stop_bits);
 void uart_sendc(char c);
 char uart_getc();
 void uart_puts(char *s);
