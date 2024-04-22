@@ -20,11 +20,11 @@ This project is part of the EEET2490 course at RMIT University, focusing on bare
 ## Getting Started
 1. **Clone the repository:**
    ```bash
-   git clone
+   git clone https://github.com/Railroad-Wrecker/EEET2490-Embedded-System-Assignment-2.git
    ```
 2. **Navigate to the project directory:**
    ```bash
-   cd
+   cd ./EEET2490-Embedded-System-Assignment-2 
    ```
 3. **Build the project:**
    ```bash
