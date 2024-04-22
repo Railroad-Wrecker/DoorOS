@@ -7,31 +7,12 @@ int LAST_STATE_TRACKER_INDEX = 0;
 int CMD_TRACKER_INDEX = 0;
 int accessHistory = 0;
 
-// Define constants for common baud rates, data bits, and stop bits
-#define BAUD_9600   9600
-#define BAUD_19200  19200
-#define BAUD_38400  38400
-#define BAUD_57600  57600
-#define BAUD_115200 115200
-
-// Data bits definitions
-#define DATA_BITS_5 5
-#define DATA_BITS_6 6
-#define DATA_BITS_7 7
-#define DATA_BITS_8 8
-
-// Stop bits definitions
-#define STOP_BITS_1 1
-#define STOP_BITS_2 2
-
 void navigateCommandHistory(char *cli_buffer, int *index, int direction);
 void cli();
 
 void main() {
     // set up serial console
-    // Initialize UART with different configurations for testing
-    uart_init(BAUD_115200, DATA_BITS_8, STOP_BITS_1);
-    uart_init(BAUD_57600, DATA_BITS_7, STOP_BITS_2);
+    uart_init();
 
     printf("\033[1;31m", "\x1b[40m");
     // show a Welcome Message when the OS successfully boot up
@@ -40,7 +21,7 @@ void main() {
     "|\\  ___ \\ |\\  ___ \\ |\\  ___ \\|\\___   ___\\/  ___  \\|\\  \\ |\\  \\|\\  ___  \\|\\   __  \\         \n"
     "\\ \\   __/|\\ \\   __/|\\ \\   __/\\|___ \\  \\_/__/|_/  /\\ \\  \\\\ \\  \\ \\____   \\ \\  \\|\\  \\        \n"
     " \\ \\  \\_|/_\\ \\  \\_|/_\\ \\  \\_|/__  \\ \\  \\|__|//  / /\\ \\______  \\|____|\\  \\ \\  \\\\\\  \\       \n"
-    "  \\ \\  \\_|\\ \\ \\  \\_|\\ \\ \\  \\_|\\ \\  \\ \\  \\   /  /_/__\\|_____|\   \\  __\\_\\  \\ \\  \\\\\\  \\      \n"
+    "  \\ \\  \\_|\\ \\ \\  \\_|\\ \\ \\  \\_|\\ \\  \\ \\  \\   /  /_/__\\|_____|\\  \\  __\\_\\  \\ \\  \\\\\\  \\      \n"
     "   \\ \\_______\\ \\_______\\ \\_______\\  \\ \\__\\ |\\________\\     \\ \\__\\|\\_______\\ \\_______\\     \n"
     "    \\|_______|\\|_______|\\|_______|   \\|__|  \\|_______|      \\|__|\\|_______|\\|_______|     \n"
     "                                                                                          \n"

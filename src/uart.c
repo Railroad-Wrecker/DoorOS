@@ -1,94 +1,53 @@
-#include "uart.h"
-
-// Define constants for common baud rates, data bits, and stop bits
-#define BAUD_9600   9600
-#define BAUD_19200  19200
-#define BAUD_38400  38400
-#define BAUD_57600  57600
-#define BAUD_115200 115200
-
-// Data bits definitions
-#define DATA_BITS_5 5
-#define DATA_BITS_6 6
-#define DATA_BITS_7 7
-#define DATA_BITS_8 8
-
-// Stop bits definitions
-#define STOP_BITS_1 1
-#define STOP_BITS_2 2
+#include "uart0.h"
 
 /**
- * Make the baud rate configurable.
+ * Set baud rate and characteristics (115200 8N1) and map to GPIO
  */
-void uart_init(unsigned int baud_rate, unsigned int data_bits, unsigned int stop_bits) {
-    unsigned int r;
-    unsigned int lcr_value;
-    const unsigned int system_clk_freq = 250000000; // System clock frequency is 250 MHz
+void uart_init()
+{
+    /* initialize UART0 */
+    UART0_CR = 0;            // Turn off UART0
 
-    /* Set data bits */
-    switch (data_bits) {
-        case DATA_BITS_5:
-            lcr_value = 2; // 0b10
-            break;
-        case DATA_BITS_6:
-            lcr_value = 3; // 0b11
-            break;
-        case DATA_BITS_7:
-            lcr_value = 0; // 0b00
-            break;
-        case DATA_BITS_8:
-        default:
-            lcr_value = 1; // 0b01
-            break;
-    }
-
-    /* Set stop bits */
-    if (stop_bits == STOP_BITS_2) {
-        lcr_value |= (1 << 2); // Set bit 2 for 2 stop bits
-    }
-
-    /* initialize UART */
-    AUX_ENABLE |= 1;     // Enable mini UART (UART1)
-    AUX_MU_CNTL = 0;     // Stop transmitter and receiver
-    AUX_MU_LCR  = lcr_value; // Set data and stop bits
-    AUX_MU_MCR  = 0;     // Clear RTS (not hardware controlled)
-    AUX_MU_IER  = 0;     // Disable interrupts
-    AUX_MU_IIR  = 0xc6;  // Enable and clear FIFOs
-    AUX_MU_BAUD = system_clk_freq / (8 * baud_rate) - 1; // Configure baud rate
-
-    /* map UART1 to GPIO pins 14 and 15 */
-    r = GPFSEL1;
-    r &= ~( (7 << 12)|(7 << 15) ); // Clear bits for FSEL15 and FSEL14
-    r |= (0b010 << 12)|(0b010 << 15); // Set value 0b010 (select ALT5: TXD1/RXD1)
+    /* Set up the GPIO pin 14 && 15 */
+    // Use GPFSEL1 to select alternate function 0 for pins 14, 15 which correspond to TXD0 and RXD0
+    unsigned int r = GPFSEL1;
+    r &= ~((7 << 12) | (7 << 15));  // Clear existing settings for pins
+    r |= (4 << 12) | (4 << 15);     // Set pins to Alt0
     GPFSEL1 = r;
 
-    /* enable GPIO 14, 15 */
-#ifdef RPI3
-    GPPUD = 0;             // No pull up/down control
-    r = 150; while(r--) { asm volatile("nop"); } // Waiting 150 cycles
-    GPPUDCLK0 = (1 << 14)|(1 << 15); // Enable clock for GPIO 14, 15
-    r = 150; while(r--) { asm volatile("nop"); } // Waiting 150 cycles
-    GPPUDCLK0 = 0;         // Flush GPIO setup
-#else
-    r = GPIO_PUP_PDN_CNTRL_REG0;
-    r &= ~((3 << 28) | (3 << 30)); // No resistor is selected for GPIO 14, 15
-    GPIO_PUP_PDN_CNTRL_REG0 = r;
-#endif
+    // Disable pull-up/down for all GPIO pins & delay for 150 cycles
+    GPPUD = 0;
+    r = 150; while(r--) { asm volatile("nop"); }
 
-    AUX_MU_CNTL = 3;       // Enable transmitter and receiver (Tx, Rx)
+    // Disable pull-up/down for pin 14,15 & delay for 150 cycles
+    GPPUDCLK0 = (1 << 14) | (1 << 15);
+    r = 150; while(r--) { asm volatile("nop"); }
+    GPPUDCLK0 = 0;  // flush GPIO setup
+
+    /* Set the UART0 baud rate */
+    // UART_CLOCK = 48MHz, Baud rate = 115200
+    UART0_IBRD = 26;  // 48MHz / (16 * 115200) = 26.0416666
+    UART0_FBRD = 3;   // Fractional part = .0416666 * 64 + 0.5 = 3.5 (approximately)
+
+    /* Set the line control */
+    UART0_LCRH = (3 << 5);  // 8 bits, no parity, one stop bit
+
+    /* Mask all interrupts */
+    UART0_IMSC = (1 << 1) | (1 << 4) | (1 << 5) | (1 << 6) | (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10);
+
+    /* Enable UART0, receive & transmit */
+    UART0_CR = (1 << 0) | (1 << 8) | (1 << 9);
 }
 
 /**
  * Send a character
  */
 void uart_sendc(char c) {
-    // wait until transmitter is empty
-    do {
-    	asm volatile("nop");
-    } while ( !(AUX_MU_LSR & 0x20) );
+    // Wait until the UART transmitter is empty
+    while (UART0_FR & (1 << 5)) { asm volatile("nop"); }
 
-    // write the character to the buffer 
-    AUX_MU_IO = c;
+    // Write the character to the UART data register
+    UART0_DR = c;
 }
 
 /**
@@ -97,15 +56,13 @@ void uart_sendc(char c) {
 char uart_getc() {
     char c;
 
-    // wait until data is ready (one symbol)
-    do {
-    	asm volatile("nop");
-    } while ( !(AUX_MU_LSR & 0x01) );
+    // Wait until a character is ready to be read
+    while (UART0_FR & (1 << 4)) { asm volatile("nop"); }
 
-    // read it and return
-    c = (unsigned char)(AUX_MU_IO);
+    // Read the character from UART data register
+    c = (unsigned char)(UART0_DR);
 
-    // convert carriage return to newline character
+    // Convert carriage return to newline character (optional, depending on your application)
     return (c == '\r' ? '\n' : c);
 }
 
@@ -114,57 +71,40 @@ char uart_getc() {
  */
 void uart_puts(char *s) {
     while (*s) {
-        // convert newline to carriage return + newline
-        if (*s == '\n')
-            uart_sendc('\r');
+        if (*s == '\n') uart_sendc('\r'); // Optional: convert newline to carriage return + newline
         uart_sendc(*s++);
     }
 }
 
+/**
+ * Display a value in hexadecimal format
+ * Note: No changes required for this function
+ */
+void uart_hex(unsigned int num) {
+    uart_puts("0x");
+    for (int pos = 28; pos >= 0; pos -= 4) {
+        char digit = (num >> pos) & 0xF;
+        digit += (digit > 9) ? (-10 + 'A') : '0';
+        uart_sendc(digit);
+    }
+}
 
 /**
-* Display a value in hexadecimal format
-*/
-void uart_hex(unsigned int num) {
-	uart_puts("0x");
-	for (int pos = 28; pos >= 0; pos = pos - 4) {
-
-		// Get highest 4-bit nibble
-		char digit = (num >> pos) & 0xF;
-
-		/* Convert to ASCII code */
-		// 0-9 => '0'-'9', 10-15 => 'A'-'F'
-		digit += (digit > 9) ? (-10 + 'A') : '0';
-		uart_sendc(digit);
-	}
+ * Display a value in decimal format
+ * Note: No changes required for this function
+ */
+void uart_dec(int num) {
+    char str[33] = "";
+    int len = 1, temp = num;
+    while (temp >= 10) {
+        len++;
+        temp /= 10;
+    }
+    for (int i = 0; i < len; i++) {
+        int digit = num % 10;
+        num /= 10;
+        str[len - (i + 1)] = digit + '0';
+    }
+    str[len] = '\0';
+    uart_puts(str);
 }
-
-/*
-**
-* Display a value in decimal format
-*/
-void uart_dec(int num)
-{
-	//A string to store the digit characters
-	char str[33] = "";
-
-	//Calculate the number of digits
-	int len = 1;
-	int temp = num;
-	while (temp >= 10){
-		len++;
-		temp = temp / 10;
-	}
-
-	//Store into the string and print out
-	for (int i = 0; i < len; i++){
-		int digit = num % 10; //get last digit
-		num = num / 10; //remove last digit from the number
-		str[len - (i + 1)] = digit + '0';
-	}
-	str[len] = '\0';
-
-	uart_puts(str);
-}
-
-
