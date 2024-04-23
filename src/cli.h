@@ -2,6 +2,7 @@
 
 void processCommand(const char *cmd);
 void help();
+void home();
 void printCommandHelp(const char *cmd);
 void clear();
 void setColor(const char *textColor, const char *backgroundColor);

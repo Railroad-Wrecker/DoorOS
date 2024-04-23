@@ -7,26 +7,20 @@ void uart_init()
 {
     unsigned int r;
 
-    /* initialize UART */
-    AUX_ENABLE |= 1;     //enable mini UART (UART1) 
-    AUX_MU_CNTL = 0;	 //stop transmitter and receiver
-    AUX_MU_LCR  = 3;     //8-bit mode (also enable bit 1 to be used for RPI3)
-    AUX_MU_MCR  = 0;	 //clear RTS (request to send)
-    AUX_MU_IER  = 0;	 //disable interrupts
-    AUX_MU_IIR  = 0xc6;  //enable and clear FIFOs
-    AUX_MU_BAUD = 270;   //configure 115200 baud rate [system_clk_freq/(baud_rate*8) - 1]
+	/* Turn off UART0 */
+	UART_CR = 0x0;
 
-    /* Note: refer to page 11 of ARM Peripherals guide for baudrate configuration 
-    (system_clk_freq is 250MHz by default) */
+	/* Setup GPIO pins 14 and 15 */
 
-    /* map UART1 to GPIO pins 14 and 15 */
-    r = GPFSEL1;
-    r &=  ~( (7 << 12)|(7 << 15) ); //clear bits 17-12 (FSEL15, FSEL14)
-    r |= (0b010 << 12)|(0b010 << 15);   //set value 0b010 (select ALT5: TXD1/RXD1)
-    GPFSEL1 = r;
+	/* Set GPIO14 and GPIO15 to be pl011 TX/RX which is ALT0	*/
+	r = GPFSEL1;
+	r &=  ~((7 << 12) | (7 << 15)); //clear bits 17-12 (FSEL15, FSEL14)
+	r |= (0b100 << 12)|(0b100 << 15);   //Set value 0b100 (select ALT0: TXD0/RXD0)
+	GPFSEL1 = r;
+	
 
 	/* enable GPIO 14, 15 */
-#ifdef RPI3 //RPI3
+#ifdef RPI3 //RBP3
 	GPPUD = 0;            //No pull up/down control
 	//Toogle clock to flush GPIO setup
 	r = 150; while(r--) { asm volatile("nop"); } //waiting 150 cycles
@@ -40,20 +34,43 @@ void uart_init()
 	GPIO_PUP_PDN_CNTRL_REG0 = r;
 #endif
 
-    AUX_MU_CNTL = 3;      //enable transmitter and receiver (Tx, Rx)
+	/* Mask all interrupts. */
+	UART_IMSC = 0;
+
+	/* Clear pending interrupts. */
+	UART_ICR = 0x7FF;
+
+	/* Set integer & fractional part of Baud rate
+	Divider = UART_CLOCK/(16 * Baud)            
+	Default UART_CLOCK = 48MHz (old firmware it was 3MHz); 
+	Integer part register UART0_IBRD  = integer part of Divider 
+	Fraction part register UART0_FBRD = (Fractional part * 64) + 0.5 */
+
+	//115200 baud
+	UART_IBRD = 26;       
+	UART_FBRD = 3;
+
+	/* Set up the Line Control Register */
+	/* Enable FIFO */
+	/* Set length to 8 bit */
+	/* Defaults for other bit are No parity, 1 stop bit */
+	UART_LCRH = UART_LCRH_FEN | UART_LCRH_WLEN_8BIT;
+
+	/* Enable UART0, receive, and transmit */
+	UART_CR = 0x301;     // enable Tx, Rx, FIFO
 }
 
-/**
+/**`
  * Send a character
  */
 void uart_sendc(char c) {
-    // wait until transmitter is empty
+    // Wait until transmitter is empty
     do {
-    	asm volatile("nop");
-    } while ( !(AUX_MU_LSR & 0x20) );
+        asm volatile("nop");
+    } while (UART_FR & (1 << 5));  // Wait while transmit FIFO is full (5th bit is TXFF)
 
-    // write the character to the buffer 
-    AUX_MU_IO = c;
+    // Write the character to the buffer
+    UART_DR = c;
 }
 
 /**
@@ -62,17 +79,18 @@ void uart_sendc(char c) {
 char uart_getc() {
     char c;
 
-    // wait until data is ready (one symbol)
+    // Wait until data is ready (one symbol)
     do {
-    	asm volatile("nop");
-    } while ( !(AUX_MU_LSR & 0x01) );
+        asm volatile("nop");
+    } while (UART_FR & (1 << 4));  // Wait while receive FIFO is empty (4th bit is RXFE)
 
-    // read it and return
-    c = (unsigned char)(AUX_MU_IO);
+    // Read it and return
+    c = (unsigned char)(UART_DR & 0xFF);  // Mask to 8 bits to ignore error flags
 
-    // convert carriage return to newline character
+    // Convert carriage return to newline character
     return (c == '\r' ? '\n' : c);
 }
+
 
 /**
  * Display a string
@@ -105,7 +123,6 @@ void uart_hex(unsigned int num) {
 }
 
 /*
-**
 * Display a value in decimal format
 */
 void uart_dec(int num)
