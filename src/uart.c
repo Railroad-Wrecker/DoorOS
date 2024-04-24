@@ -1,63 +1,60 @@
 #include "uart.h"
 
+// Global configuration variables (with defaults)
+static unsigned int current_baud_rate = 115200;
+static unsigned int current_data_bits = 8;
+static unsigned int current_stop_bits = 1;
+static char current_parity = 'N'; // N (none), E (even), O (odd)
+static int current_handshaking = 0; // 0 for false, 1 for true
+
 /**
- * Set baud rate and characteristics (115200 8N1) and map to GPIO
+ * Initialize UART with configurable settings
  */
-void uart_init()
-{
+void uart_init() {
     unsigned int r;
 
-	/* Turn off UART0 */
-	UART0_CR = 0x0;
+    /* Turn off UART0 */
+    UART0_CR = 0x0;
 
-	/* Setup GPIO pins 14 and 15 */
+    // Setup GPIO pins 14 and 15 (Assuming Raspberry Pi setup as in previous function)
 
-	/* Set GPIO14 and GPIO15 to be pl011 TX/RX which is ALT0	*/
-	r = GPFSEL1;
-	r &=  ~((7 << 12) | (7 << 15)); //clear bits 17-12 (FSEL15, FSEL14)
-	r |= (0b100 << 12)|(0b100 << 15);   //Set value 0b100 (select ALT0: TXD0/RXD0)
-	GPFSEL1 = r;
-	
+    /* Mask all interrupts */
+    UART0_IMSC = 0;
 
-	/* enable GPIO 14, 15 */
-#ifdef RPI3 //RBP3
-	GPPUD = 0;            //No pull up/down control
-	//Toogle clock to flush GPIO setup
-	r = 150; while(r--) { asm volatile("nop"); } //waiting 150 cycles
-	GPPUDCLK0 = (1 << 14)|(1 << 15); //enable clock for GPIO 14, 15
-	r = 150; while(r--) { asm volatile("nop"); } //waiting 150 cycles
-	GPPUDCLK0 = 0;        // flush GPIO setup
+    /* Clear pending interrupts */
+    UART0_ICR = 0x7FF;
 
-#else //RPI4
-	r = GPIO_PUP_PDN_CNTRL_REG0;
-	r &= ~((3 << 28) | (3 << 30)); //No resistor is selected for GPIO 14, 15
-	GPIO_PUP_PDN_CNTRL_REG0 = r;
-#endif
+    /* Calculate baud rate divisors */
+    unsigned int ibrd = 3000000 / (16 * current_baud_rate); // Example with a fixed UART clock
+    unsigned int fbrd = ((3000000 % (16 * current_baud_rate)) * 64 + current_baud_rate / 2) / current_baud_rate;
 
-	/* Mask all interrupts. */
-	UART0_IMSC = 0;
+    UART0_IBRD = ibrd;
+    UART0_FBRD = fbrd;
 
-	/* Clear pending interrupts. */
-	UART0_ICR = 0x7FF;
+    /* Configure Line Control Register */
+    unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
+    switch (current_data_bits) {
+        case 5: lcrh |= UART0_LCRH_WLEN_5BIT; break;
+        case 6: lcrh |= UART0_LCRH_WLEN_6BIT; break;
+        case 7: lcrh |= UART0_LCRH_WLEN_7BIT; break;
+        case 8: lcrh |= UART0_LCRH_WLEN_8BIT; break;
+    }
+    if (current_stop_bits == 2) {
+        lcrh |= UART0_LCRH_STP2;
+    }
+    if (current_parity == 'E') {
+        lcrh |= (UART0_LCRH_PEN | UART0_LCRH_EPS);
+    } else if (current_parity == 'O') {
+        lcrh |= UART0_LCRH_PEN;
+    }
+    UART0_LCRH = lcrh;
 
-	/* Set integer & fractional part of Baud rate
-	Divider = UART_CLOCK/(16 * Baud)            
-	Default UART_CLOCK = 48MHz (old firmware it was 3MHz); 
-	Integer part register UART0_IBRD  = integer part of Divider 
-	Fraction part register UART0_FBRD = (Fractional part * 64) + 0.5 */
-
-	//115200 baud
-	UART0_IBRD = 26;       
-	UART0_FBRD = 3;
-
-	/* Set up the Line Control Register */
-	/* Enable FIFO */
-	/* Set length to 8 bit */
-	/* Defaults for other bit are No parity, 1 stop bit */
-	UART0_LCRH = UART0_LCRH_FEN | UART0_LCRH_WLEN_8BIT;
-
-	/* Enable UART0, receive, and transmit */
-	UART0_CR = 0x301;     // enable Tx, Rx, FIFO
+    /* Enable UART0 with or without handshaking */
+    r = UART0_CR_UARTEN | UART0_CR_TXE | UART0_CR_RXE;
+    if (current_handshaking) {
+        r |= UART0_CR_RTS;
+    }
+    UART0_CR = r;
 }
 
 /**

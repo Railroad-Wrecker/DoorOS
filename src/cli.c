@@ -1,4 +1,5 @@
 #include "cli.h"
+#include "uart.c"
 
 #define MAX_CMD_SIZE 100
 
@@ -16,6 +17,27 @@ const char *commandDescriptions[] = {
 // Simple isspace implementation
 static inline int isspace(int c) {
     return (c == ' ' || c == '\n' || c == '\t' || c == '\r' || c == '\f' || c == '\v');
+}
+
+// Custom atoi implementation
+int custom_atoi(const char *str) {
+    int res = 0; 
+    int sign = 1;  
+    int i = 0; 
+  
+    if (str[0] == '-') {
+        sign = -1;  
+        i++;  
+    }
+  
+    for (; str[i] != '\0'; ++i) {
+        if (str[i] >= '0' && str[i] <= '9') {
+            res = res * 10 + str[i] - '0';
+        } else {
+            break;
+        }
+    }
+    return sign * res;
 }
 
 // Process a command from user input
@@ -114,6 +136,62 @@ void processCommand(const char *cmd) {
                    "+------------------------------------------+\n");
             break;
     }
+}
+
+// UART configuration command handlers
+void processUartCommand(const char *cmd) {
+    if (strncmp(cmd, "set-baud ", 9) == 0) {
+        setBaudRate(cmd + 9);
+    } else if (strncmp(cmd, "set-data-bits ", 14) == 0) {
+        setDataBits(cmd + 14);
+    } else if (strncmp(cmd, "set-stop-bits ", 14) == 0) {
+        setStopBits(cmd + 14);
+    } else if (strncmp(cmd, "set-parity ", 11) == 0) {
+        setParity(cmd + 11);
+    } else if (strncmp(cmd, "set-handshaking ", 16) == 0) {
+        setHandshaking(cmd + 16);
+    } else if (strcmp(cmd, "show-uart-config") == 0) {
+        showUartConfig();
+    } else {
+        printf("Unknown UART command. Type 'help' for assistance.\n");
+    }
+}
+
+void setBaudRate(const char *rate) {
+    current_baud_rate = custom_atoi(rate);
+    printf("Baud rate set to %u\n", current_baud_rate);
+}
+
+void setDataBits(const char *bits) {
+    current_data_bits = custom_atoi(bits);
+    printf("Data bits set to %u\n", current_data_bits);
+}
+
+void setStopBits(const char *bits) {
+    current_stop_bits = custom_atoi(bits);
+    printf("Stop bits set to %u\n", current_stop_bits);
+}
+
+void setParity(const char *parity) {
+    if (strcmp(parity, "none") == 0) current_parity = 'N';
+    else if (strcmp(parity, "even") == 0) current_parity = 'E';
+    else if (strcmp(parity, "odd") == 0) current_parity = 'O';
+    printf("Parity set to %s\n", parity);
+}
+
+void setHandshaking(const char *state) {
+    if (strcmp(state, "on") == 0) current_handshaking = 1;
+    else current_handshaking = 0;
+    printf("Handshaking set to %s\n", state);
+}
+
+void showUartConfig() {
+    printf("Current UART Configuration:\n");
+    printf("Baud Rate: %u\n", current_baud_rate);
+    printf("Data Bits: %u\n", current_data_bits);
+    printf("Stop Bits: %u\n", current_stop_bits);
+    printf("Parity: %c\n", current_parity);
+    printf("Handshaking: %s\n", current_handshaking ? "on" : "off");
 }
 
 // Function to display command list
