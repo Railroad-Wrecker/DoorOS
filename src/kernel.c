@@ -2,9 +2,6 @@
 
 #define MAX_CMD_SIZE 100
 #define CMD_TRACKER_SIZE 20
-
-#define MSG "Hello World! This is UART1 !!!\n"
-
 char CMD_TRACKER[CMD_TRACKER_SIZE][MAX_CMD_SIZE];
 int LAST_STATE_TRACKER_INDEX = 0;
 int CMD_TRACKER_INDEX = 0;

@@ -8,7 +8,7 @@ void uart_init()
     unsigned int r;
 
 	/* Turn off UART0 */
-	UART_CR = 0x0;
+	UART0_CR = 0x0;
 
 	/* Setup GPIO pins 14 and 15 */
 
@@ -35,10 +35,10 @@ void uart_init()
 #endif
 
 	/* Mask all interrupts. */
-	UART_IMSC = 0;
+	UART0_IMSC = 0;
 
 	/* Clear pending interrupts. */
-	UART_ICR = 0x7FF;
+	UART0_ICR = 0x7FF;
 
 	/* Set integer & fractional part of Baud rate
 	Divider = UART_CLOCK/(16 * Baud)            
@@ -47,63 +47,65 @@ void uart_init()
 	Fraction part register UART0_FBRD = (Fractional part * 64) + 0.5 */
 
 	//115200 baud
-	UART_IBRD = 26;       
-	UART_FBRD = 3;
+	UART0_IBRD = 26;       
+	UART0_FBRD = 3;
 
 	/* Set up the Line Control Register */
 	/* Enable FIFO */
 	/* Set length to 8 bit */
 	/* Defaults for other bit are No parity, 1 stop bit */
-	UART_LCRH = UART_LCRH_FEN | UART_LCRH_WLEN_8BIT;
+	UART0_LCRH = UART0_LCRH_FEN | UART0_LCRH_WLEN_8BIT;
 
 	/* Enable UART0, receive, and transmit */
-	UART_CR = 0x301;     // enable Tx, Rx, FIFO
+	UART0_CR = 0x301;     // enable Tx, Rx, FIFO
 }
 
-/**`
+/**
  * Send a character
  */
 void uart_sendc(char c) {
-    // Wait until transmitter is empty
-    do {
-        asm volatile("nop");
-    } while (UART_FR & (1 << 5));  // Wait while transmit FIFO is full (5th bit is TXFF)
 
-    // Write the character to the buffer
-    UART_DR = c;
+    /* Check Flags Register */
+	/* And wait until transmitter is not full */
+	do {
+		asm volatile("nop");
+	} while (UART0_FR & UART0_FR_TXFF);
+
+	/* Write our data byte out to the data register */
+	UART0_DR = c ;
 }
 
 /**
  * Receive a character
  */
 char uart_getc() {
-    char c;
+    char c = 0;
 
-    // Wait until data is ready (one symbol)
-    do {
-        asm volatile("nop");
-    } while (UART_FR & (1 << 4));  // Wait while receive FIFO is empty (4th bit is RXFE)
+    /* Check Flags Register */
+    /* Wait until Receiver is not empty
+     * (at least one byte data in receive fifo)*/
+	do {
+		asm volatile("nop");
+    } while ( UART0_FR & UART0_FR_RXFE );
 
-    // Read it and return
-    c = (unsigned char)(UART_DR & 0xFF);  // Mask to 8 bits to ignore error flags
+    /* read it and return */
+    c = (unsigned char) (UART0_DR);
 
-    // Convert carriage return to newline character
+    /* convert carriage return to newline */
     return (c == '\r' ? '\n' : c);
 }
-
 
 /**
  * Display a string
  */
 void uart_puts(char *s) {
     while (*s) {
-        // convert newline to carriage return + newline
+        /* convert newline to carriage return + newline */
         if (*s == '\n')
             uart_sendc('\r');
         uart_sendc(*s++);
     }
 }
-
 
 /**
 * Display a value in hexadecimal format
