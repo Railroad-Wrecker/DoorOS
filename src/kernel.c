@@ -90,7 +90,7 @@ void cli() {
         uart_sendc(c);
         
     }
-    if (c != '+' && c != '_' && accessHistory == 1) {
+    if (c != '=' && c != '-' && accessHistory == 1) {
         accessHistory = 0;
         CMD_TRACKER_INDEX = LAST_STATE_TRACKER_INDEX;
     }
@@ -138,7 +138,7 @@ void cli() {
             index--;
             cli_buffer[index] = '\0';
         }
-    } else if (c == '_') { // Move down in history
+    } else if (c == '-') { // Move down in history
         for(int i = 0; i < strlen(cli_buffer)+1; i++){
             uart_sendc(0x08);
             uart_sendc(' ');
@@ -147,7 +147,7 @@ void cli() {
         navigateCommandHistory(cli_buffer, &index, -1);
         
         printf("\rDoorOS> %s", cli_buffer);
-    } else if (c == '+') { // Move up in history
+    } else if (c == '=') { // Move up in history
         for(int i = 0; i < strlen(cli_buffer)+1; i++){
             uart_sendc(0x08);
             uart_sendc(' ');

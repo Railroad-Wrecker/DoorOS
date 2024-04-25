@@ -1,11 +1,11 @@
 #include "uart.h"
 
 // Global configuration variables (with defaults)
-static unsigned int current_baud_rate = 115200;
-static unsigned int current_data_bits = 8;
-static unsigned int current_stop_bits = 1;
-static char current_parity = 'N'; // N (none), E (even), O (odd)
-static int current_handshaking = 0; // 0 for false, 1 for true
+unsigned int current_baud_rate = 115200;
+unsigned int current_data_bits = 8;
+unsigned int current_stop_bits = 1;
+char current_parity = 'N'; // N (none), E (even), O (odd)
+int current_handshaking = 0; // 0 for false, 1 for true
 
 /**
  * Initialize UART with configurable settings
