@@ -48,8 +48,6 @@ void uart_init()
 
     /* Enable UART0, receive, and transmit */
     UART0_CR = 0x301; // Enable Tx, Rx, FIFO
-
-    uart_restart();
 }
 
 /**
@@ -65,9 +63,6 @@ void uart_set_baud_rate(unsigned int baud_rate)
 
     UART0_IBRD = ibrd;
     UART0_FBRD = fbrd;
-
-    // putout the baud rate to the terminal
-    uart_puts("Baud rate: ");
 }
 
 /**
@@ -133,6 +128,9 @@ void uart_restart()
 
     // Re-enable the UART, receive, and transmit
     UART0_CR = 0x301; // Enable Tx, Rx, FIFO
+
+    // Print a message to indicate UART has been restarted
+    uart_puts("UART restarted with new settings\n");
 }
 
 /**

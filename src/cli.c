@@ -147,6 +147,8 @@ void processCommand(const char *cmd) {
                 int baud_rate = simple_atoi(cmd + 8);
                 uart_set_baud_rate(baud_rate);
                 printf("Baud rate set to %d\n", baud_rate);
+                // Update UART settings
+                uart_update_settings(baud_rate, 0, 'N', 1);
             } 
             break;
         case 6:
@@ -155,6 +157,8 @@ void processCommand(const char *cmd) {
                 int data_bits = simple_atoi(cmd + 12);
                 uart_set_line_control(data_bits, 'N', 1);
                 printf("Data bits set to %d\n", data_bits);
+                // Update UART settings
+                uart_update_settings(0, data_bits, 'N', 1);
             }
             break;
         case 7:
@@ -163,6 +167,8 @@ void processCommand(const char *cmd) {
                 int stop_bits = simple_atoi(cmd + 12);
                 uart_set_line_control(8, 'N', stop_bits);
                 printf("Stop bits set to %d\n", stop_bits);
+                // Update UART settings
+                uart_update_settings(0, 8, 'N', stop_bits);
             }
             break;
         case 8:
@@ -170,9 +176,17 @@ void processCommand(const char *cmd) {
             if (uart_strncmp(cmd, "setparity ", 10) == 0) {
                 char parity = cmd[10];
                 uart_set_line_control(8, parity, 1);
-                printf("Parity set to: %c\n", parity);
+                // Print if parity is even, odd or none
+                if (parity == 'E') {
+                    printf("Parity set to even\n");
+                } else if (parity == 'O') {
+                    printf("Parity set to odd\n");
+                } else {
+                    printf("Parity set to none\n");
+                }
+                // Update UART settings
+                uart_update_settings(0, 8, parity, 1);
             }
-            
             break;
         default:
             printf(
