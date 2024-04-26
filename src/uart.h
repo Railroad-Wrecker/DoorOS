@@ -148,13 +148,16 @@
 /* TDR = Test Data Register */
 #define UART0_TDR	(* (volatile unsigned int*)(UART0_BASE + 0x8C))
 
-
 /* Function prototypes */
-void uart_init(void);
+void uart_init();
 void uart_set_baud_rate(unsigned int baud_rate);
 void uart_set_line_control(unsigned int data_bits, char parity, unsigned int stop_bits);
+void uart_update_settings(unsigned int baud_rate, unsigned int data_bits, char parity, unsigned int stop_bits);
+void uart_restart();
+
 void uart_sendc(char c);
 char uart_getc();
 void uart_puts(char *s);
 void uart_hex(unsigned int num);
 void uart_dec(int num);
+

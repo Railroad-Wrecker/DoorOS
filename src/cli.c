@@ -4,7 +4,7 @@
 #define MAX_CMD_SIZE 100
 
 // Updated command array
-const char *commands[] = {"help", "clear", "setcolor", "showinfo", "home", "setbaud", "setdatabits", "setstopbits", "setparity"};
+const char *commands[] = {"help", "clear", "setcolor", "showinfo", "home", "setbaud", "setdatabits", "setstopbits", "setparity", "handshake"};
 
 // Updated command descriptions array
 const char *commandDescriptions[] = {
@@ -146,7 +146,7 @@ void processCommand(const char *cmd) {
             if (uart_strncmp(cmd, "setbaud ", 8) == 0) {
                 int baud_rate = simple_atoi(cmd + 8);
                 uart_set_baud_rate(baud_rate);
-                uart_puts("Baud rate set\n");
+                printf("Baud rate set to %d\n", baud_rate);
             } 
             break;
         case 6:
@@ -154,7 +154,7 @@ void processCommand(const char *cmd) {
             if (uart_strncmp(cmd, "setdatabits ", 12) == 0) {
                 int data_bits = simple_atoi(cmd + 12);
                 uart_set_line_control(data_bits, 'N', 1);
-                uart_puts("Data bits set\n");
+                printf("Data bits set to %d\n", data_bits);
             }
             break;
         case 7:
@@ -162,7 +162,7 @@ void processCommand(const char *cmd) {
             if (uart_strncmp(cmd, "setstopbits ", 12) == 0) {
                 int stop_bits = simple_atoi(cmd + 12);
                 uart_set_line_control(8, 'N', stop_bits);
-                uart_puts("Stop bits set\n");
+                printf("Stop bits set to %d\n", stop_bits);
             }
             break;
         case 8:
@@ -170,8 +170,9 @@ void processCommand(const char *cmd) {
             if (uart_strncmp(cmd, "setparity ", 10) == 0) {
                 char parity = cmd[10];
                 uart_set_line_control(8, parity, 1);
-                uart_puts("Parity set\n");
+                printf("Parity set to: %c\n", parity);
             }
+            
             break;
         default:
             printf(
