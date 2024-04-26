@@ -32,9 +32,6 @@ typedef unsigned long int uint64_t;
 #define GPEDS1      (* (volatile unsigned int*)(MMIO_BASE+0x00200044))
 #define GPHEN0      (* (volatile unsigned int*)(MMIO_BASE+0x00200064))
 #define GPHEN1      (* (volatile unsigned int*)(MMIO_BASE+0x00200068))
-#define GPPUD       (* (volatile unsigned int*)(MMIO_BASE+0x00200094))
-#define GPPUDCLK0   (* (volatile unsigned int*)(MMIO_BASE+0x00200098))
-#define GPPUDCLK1   (* (volatile unsigned int*)(MMIO_BASE+0x0020009C))
 
 //RBP3 only
 #define GPPUD           (* (volatile unsigned int*)(MMIO_BASE+0x00200094))

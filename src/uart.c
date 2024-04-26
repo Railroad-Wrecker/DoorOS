@@ -1,63 +1,79 @@
 #include "uart.h"
 
+// Define constants for UART configuration
+#define UART_CLOCK 48000000 // Default UART clock frequency
+
 /**
- * Set baud rate and characteristics (115200 8N1) and map to GPIO
+ * Configure UART with specified baud rate, data bits, and stop bits.
+ * 
+ * @param baud_rate The baud rate (e.g., 9600, 115200).
+ * @param data_bits The number of data bits (7 or 8).
+ * @param stop_bits The number of stop bits (1 or 2).
  */
-void uart_init()
+void uart_configure(unsigned int baud_rate, unsigned int data_bits, unsigned int stop_bits)
 {
     unsigned int r;
 
-	/* Turn off UART0 */
-	UART0_CR = 0x0;
+    /* Turn off UART0 */
+    UART0_CR = 0x0;
 
-	/* Setup GPIO pins 14 and 15 */
+    // Configure GPIO pins 14 and 15
+    r = GPFSEL1;
+    r &= ~((7 << 12) | (7 << 15));
+    r |= (0b100 << 12)|(0b100 << 15);
+    GPFSEL1 = r;
 
-	/* Set GPIO14 and GPIO15 to be pl011 TX/RX which is ALT0	*/
-	r = GPFSEL1;
-	r &=  ~((7 << 12) | (7 << 15)); //clear bits 17-12 (FSEL15, FSEL14)
-	r |= (0b100 << 12)|(0b100 << 15);   //Set value 0b100 (select ALT0: TXD0/RXD0)
-	GPFSEL1 = r;
-	
+    // Enable GPIO 14, 15
+    #ifdef RPI3
+    GPPUD = 0;
+    r = 150; while(r--) { asm volatile("nop"); }
+    GPPUDCLK0 = (1 << 14)|(1 << 15);
+    r = 150; while(r--) { asm volatile("nop"); }
+    GPPUDCLK0 = 0;
+    #else // RPI4
+    r = GPIO_PUP_PDN_CNTRL_REG0;
+    r &= ~((3 << 28) | (3 << 30));
+    GPIO_PUP_PDN_CNTRL_REG0 = r;
+    #endif
 
-	/* enable GPIO 14, 15 */
-#ifdef RPI3 //RBP3
-	GPPUD = 0;            //No pull up/down control
-	//Toogle clock to flush GPIO setup
-	r = 150; while(r--) { asm volatile("nop"); } //waiting 150 cycles
-	GPPUDCLK0 = (1 << 14)|(1 << 15); //enable clock for GPIO 14, 15
-	r = 150; while(r--) { asm volatile("nop"); } //waiting 150 cycles
-	GPPUDCLK0 = 0;        // flush GPIO setup
+    // Mask all interrupts
+    UART0_IMSC = 0;
 
-#else //RPI4
-	r = GPIO_PUP_PDN_CNTRL_REG0;
-	r &= ~((3 << 28) | (3 << 30)); //No resistor is selected for GPIO 14, 15
-	GPIO_PUP_PDN_CNTRL_REG0 = r;
-#endif
+    // Clear pending interrupts
+    UART0_ICR = 0x7FF;
 
-	/* Mask all interrupts. */
-	UART0_IMSC = 0;
+    // Calculate UART divider based on the specified baud rate
+    unsigned int divider = UART_CLOCK / (16 * baud_rate);
+    unsigned int fractional_part = (UART_CLOCK % (16 * baud_rate) * 64 + baud_rate / 2) / baud_rate;
 
-	/* Clear pending interrupts. */
-	UART0_ICR = 0x7FF;
+    // Set integer & fractional part of Baud rate
+    UART0_IBRD = divider;
+    UART0_FBRD = fractional_part;
 
-	/* Set integer & fractional part of Baud rate
-	Divider = UART_CLOCK/(16 * Baud)            
-	Default UART_CLOCK = 48MHz (old firmware it was 3MHz); 
-	Integer part register UART0_IBRD  = integer part of Divider 
-	Fraction part register UART0_FBRD = (Fractional part * 64) + 0.5 */
+    // Configure the Line Control Register
+    unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
+    if (data_bits == 8) {
+        lcrh |= UART0_LCRH_WLEN_8BIT;
+    } else {
+        lcrh |= UART0_LCRH_WLEN_7BIT;
+    }
 
-	//115200 baud
-	UART0_IBRD = 26;       
-	UART0_FBRD = 3;
+    if (stop_bits == 2) {
+        lcrh |= UART0_LCRH_STP2;
+    }
 
-	/* Set up the Line Control Register */
-	/* Enable FIFO */
-	/* Set length to 8 bit */
-	/* Defaults for other bit are No parity, 1 stop bit */
-	UART0_LCRH = UART0_LCRH_FEN | UART0_LCRH_WLEN_8BIT;
+    UART0_LCRH = lcrh;
 
-	/* Enable UART0, receive, and transmit */
-	UART0_CR = 0x301;     // enable Tx, Rx, FIFO
+    // Enable UART0, receive, and transmit
+    UART0_CR = 0x301; // enable Tx, Rx, FIFO
+}
+
+/**
+ * Initialize UART to default settings (115200 baud, 8 data bits, 1 stop bit).
+ */
+void uart_init()
+{
+    uart_configure(115200, 8, 1);
 }
 
 /**
