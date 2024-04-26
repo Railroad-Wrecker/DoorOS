@@ -150,7 +150,9 @@
 
 
 /* Function prototypes */
-void uart_init();
+void uart_init(void);
+void uart_set_baud_rate(unsigned int baud_rate);
+void uart_set_line_control(unsigned int data_bits, char parity, unsigned int stop_bits);
 void uart_sendc(char c);
 char uart_getc();
 void uart_puts(char *s);

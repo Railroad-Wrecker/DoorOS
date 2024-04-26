@@ -1,16 +1,22 @@
 #include "cli.h"
+#include "uart.h"
 
 #define MAX_CMD_SIZE 100
 
-// Commands syntax & description
-const char *commands[] = {"help", "clear", "setcolor", "showinfo", "home"};
+// Updated command array
+const char *commands[] = {"help", "clear", "setcolor", "showinfo", "home", "setbaud", "setdatabits", "setstopbits", "setparity"};
 
+// Updated command descriptions array
 const char *commandDescriptions[] = {
-    "The help command provides assistance in navigating the MyBareOS CLI environment. Use 'help' for a list of available commands.",
-    "Refreshes the terminal by clearing clutter. The screen will scroll down, leaving a fresh display.",
-    "Adjusts text and background colors in the terminal. Use '-t' for text color and '-b' for background. Example: setcolor -b yellow -t white. Available colors: black, red, green, yellow, blue, purple, cyan, white.",
+    "Provides assistance in navigating the DoorOS CLI environment.",
+    "Refreshes the terminal by clearing clutter.",
+    "Adjusts text and background colors. Example Usage: setcolor -b yellow -t white.",
     "Displays board revision and MAC address.",
-    "Return to home."
+    "Return to home.",
+    "Sets the UART baud rate. Example: setbaud 115200",
+    "Sets the UART data bits (5, 6, 7 or 8). Example: setdatabits 8",
+    "Sets the UART stop bits (1 or 2). Example: setstopbits 1",
+    "Sets the UART parity (N, E or O). Example: setparity N"
 };
 
 // Simple isspace implementation
@@ -18,6 +24,35 @@ static inline int isspace(int c) {
     return (c == ' ' || c == '\n' || c == '\t' || c == '\r' || c == '\f' || c == '\v');
 }
 
+// Function to convert ASCII string to integer (since we cannot use the standard library's atoi)
+static int simple_atoi(const char *str) {
+    int res = 0;
+    while (*str >= '0' && *str <= '9') {
+        res = res * 10 + (*str - '0');
+        str++;
+    }
+    return res;
+}
+
+// Helper function to find length of string (replacing strlen)
+static int uart_strlen(const char *s) {
+    int length = 0;
+    while (*s++) length++;
+    return length;
+}
+
+// Helper function to compare strings (replacing strncmp)
+static int uart_strncmp(const char *s1, const char *s2, int n) {
+    while (n--) {
+        if (*s1 != *s2) {
+            return *(unsigned char *)s1 - *(unsigned char *)s2;
+        }
+        if (*s1 == '\0') break;
+        s1++;
+        s2++;
+    }
+    return 0;
+}
 
 // Process a command from user input
 void processCommand(const char *cmd) {
@@ -105,6 +140,38 @@ void processCommand(const char *cmd) {
             break;
         case 4:
             home();
+            break;
+        case 5:
+            // Set Baud Rate
+            if (uart_strncmp(cmd, "setbaud ", 8) == 0) {
+                int baud_rate = simple_atoi(cmd + 8);
+                uart_set_baud_rate(baud_rate);
+                uart_puts("Baud rate set\n");
+            } 
+            break;
+        case 6:
+            // Set Data Bits
+            if (uart_strncmp(cmd, "setdatabits ", 12) == 0) {
+                int data_bits = simple_atoi(cmd + 12);
+                uart_set_line_control(data_bits, 'N', 1);
+                uart_puts("Data bits set\n");
+            }
+            break;
+        case 7:
+            // Set Stop Bits
+            if (uart_strncmp(cmd, "setstopbits ", 12) == 0) {
+                int stop_bits = simple_atoi(cmd + 12);
+                uart_set_line_control(8, 'N', stop_bits);
+                uart_puts("Stop bits set\n");
+            }
+            break;
+        case 8:
+            // Set Parity
+            if (uart_strncmp(cmd, "setparity ", 10) == 0) {
+                char parity = cmd[10];
+                uart_set_line_control(8, parity, 1);
+                uart_puts("Parity set\n");
+            }
             break;
         default:
             printf(
