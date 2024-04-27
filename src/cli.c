@@ -4,8 +4,11 @@
 #define MAX_CMD_SIZE 100
 #define UART_CLOCK 48000000 // Default UART clock frequency
 
+unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
+
 // Updated command array
-const char *commands[] = {"help", "clear", "setcolor", "showinfo", "home", "setbaud", "setdatabits", "setstopbits", "setparity", "handshake"};
+const char *commands[] = {"help", "clear", "setcolor", "showinfo", "home", "setbaud", 
+                        "setdatabits", "setstopbits", "setparity", "sethandshake"};
 
 // Updated command descriptions array
 const char *commandDescriptions[] = {
@@ -17,7 +20,8 @@ const char *commandDescriptions[] = {
     "Sets the UART baud rate. Example: setbaud 115200",
     "Sets the UART data bits (5, 6, 7 or 8). Example: setdatabits 8",
     "Sets the UART stop bits (1 or 2). Example: setstopbits 1",
-    "Sets the UART parity (N, E or O). Example: setparity N"
+    "Sets the UART parity (N, E or O). Example: setparity N",
+    "Sets the UART hardware handshake (N = Disable, C = CTS, R = RTS, B = Both). Example: sethandshake N"
 };
 
 // Simple isspace implementation
@@ -165,28 +169,80 @@ void processCommand(const char *cmd) {
         case 6:
             // Set Data Bits
             if (uart_strncmp(cmd, "setdatabits ", 12) == 0) {
+
+                // Turn off uart before changing data bits
+                UART0_CR = 0x0;
                 int data_bits = simple_atoi(cmd + 12);
-                uart_set_line_control(data_bits, 'N', 1);
+
+                // Set data bits
+                switch (data_bits)
+                {
+                    case 5: lcrh |= UART0_LCRH_WLEN_5BIT; break;
+                    case 6: lcrh |= UART0_LCRH_WLEN_6BIT; break;
+                    case 7: lcrh |= UART0_LCRH_WLEN_7BIT; break;
+                    case 8: lcrh |= UART0_LCRH_WLEN_8BIT; break;
+                    default: lcrh |= UART0_LCRH_WLEN_8BIT; break; // Default to 8 bits
+                }
+
+                UART0_LCRH = lcrh;
+
+                // Restart UART
+                UART0_CR = 0x301;
+
                 printf("Data bits set to %d\n", data_bits);
                 // Update UART settings
-                uart_update_settings(0, data_bits, 'N', 1);
+                // uart_update_settings(0, data_bits, 'N', 1);
             }
             break;
         case 7:
             // Set Stop Bits
             if (uart_strncmp(cmd, "setstopbits ", 12) == 0) {
+
+                // Turn off uart before changing stop bits
+                UART0_CR = 0x0;
+
                 int stop_bits = simple_atoi(cmd + 12);
-                uart_set_line_control(8, 'N', stop_bits);
+
+                // Set stop bits
+                if (stop_bits == 2)
+                {
+                    lcrh |= UART0_LCRH_STP2; // 2 stop bits
+                } else {
+                    lcrh &= ~UART0_LCRH_STP2; // 1 stop bit
+                }
+
+                UART0_LCRH = lcrh;
+
+                // Restart UART
+                UART0_CR = 0x301;
+                
                 printf("Stop bits set to %d\n", stop_bits);
                 // Update UART settings
-                uart_update_settings(0, 8, 'N', stop_bits);
+                // uart_update_settings(0, 8, 'N', stop_bits);
             }
             break;
         case 8:
             // Set Parity
             if (uart_strncmp(cmd, "setparity ", 10) == 0) {
+                
+                // Turn off uart before changing parity
+                UART0_CR = 0x0;
+                
                 char parity = cmd[10];
-                uart_set_line_control(8, parity, 1);
+                
+                // Set parity
+                switch (parity)
+                {
+                    case 'E': lcrh |= UART0_LCRH_PEN; break; // Enable parity, even by default
+                    case 'O': lcrh |= UART0_LCRH_PEN | UART0_LCRH_EPS; break; // Enable parity, odd
+                    default: break; // No parity
+                }
+
+                UART0_LCRH = lcrh;
+
+                // Restart UART
+                UART0_CR = 0x301;
+
                 // Print if parity is even, odd or none
                 if (parity == 'E') {
                     printf("Parity set to even\n");
@@ -196,7 +252,40 @@ void processCommand(const char *cmd) {
                     printf("Parity set to none\n");
                 }
                 // Update UART settings
-                uart_update_settings(0, 8, parity, 1);
+                // uart_update_settings(0, 8, parity, 1);
+            }
+            break;
+        case 9:
+            // Set Hardware Handshake (CTS/RTS)
+            if (uart_strncmp(cmd, "sethandshake ", 10) == 0) {
+                // Turn off uart before changing handshake
+                UART0_CR = 0x0;
+                char handshake = cmd[10];
+                switch (handshake)
+                {
+                    case 'N': UART0_CR &= ~UART0_CR_CTSEN; UART0_CR &= ~UART0_CR_RTSEN; break; // Disable CTS/RTS
+                    case 'C': UART0_CR |= UART0_CR_CTSEN; UART0_CR &= ~UART0_CR_RTSEN; break; // Enable CTS only
+                    case 'R': UART0_CR &= ~UART0_CR_CTSEN; UART0_CR |= UART0_CR_RTSEN; break; // Enable RTS only
+                    case 'B': UART0_CR |= UART0_CR_CTSEN; UART0_CR |= UART0_CR_RTSEN; break; // Enable both CTS and RTS
+                    default: break; // No handshake
+                }
+                // Restart UART
+                UART0_CR = 0x301;
+
+                // Print if handshake status
+                if (handshake == 'N') {
+                    printf("Hardware handshake disabled\n");
+                } else if (handshake == 'C') {
+                    printf("CTS flow control enabled\n");
+                } else if (handshake == 'R') {
+                    printf("RTS flow control enabled\n");
+                } else if (handshake == 'B') {
+                    printf("CTS and RTS flow control enabled\n");
+                } else {
+                    printf("Hardware handshake not set\n");
+                }
+                // Update UART settings
+                // uart_update_settings(0, 8, 'N', 1);
             }
             break;
         default:
