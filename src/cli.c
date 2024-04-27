@@ -2,6 +2,7 @@
 #include "uart.h"
 
 #define MAX_CMD_SIZE 100
+#define UART_CLOCK 48000000 // Default UART clock frequency
 
 // Updated command array
 const char *commands[] = {"help", "clear", "setcolor", "showinfo", "home", "setbaud", "setdatabits", "setstopbits", "setparity", "handshake"};
@@ -144,11 +145,21 @@ void processCommand(const char *cmd) {
         case 5:
             // Set Baud Rate
             if (uart_strncmp(cmd, "setbaud ", 8) == 0) {
+                // Turn off uart before changing baud rate
+                UART0_CR = 0x0;
                 int baud_rate = simple_atoi(cmd + 8);
-                uart_set_baud_rate(baud_rate);
+                unsigned int ibrd, fbrd, divider;
+                divider = UART_CLOCK / (16 * baud_rate);
+                ibrd = divider;                       // Integer part of divider
+                fbrd = (divider - ibrd) * 64 + 0.5;   // Fractional part of divider
+
+                UART0_IBRD = ibrd;
+                UART0_FBRD = fbrd;
+                // Restart UART
+                UART0_CR = 0x301;
                 printf("Baud rate set to %d\n", baud_rate);
                 // Update UART settings
-                uart_update_settings(baud_rate, 0, 'N', 1);
+                // uart_update_settings(baud_rate, 0, 'N', 1);
             } 
             break;
         case 6:
