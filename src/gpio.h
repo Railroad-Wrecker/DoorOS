@@ -8,7 +8,7 @@ typedef unsigned short int uint16_t;
 typedef unsigned int uint32_t;
 typedef unsigned long int uint64_t;
 
-#define RPI4 //enable when doing emulation with QEMU (support RPI3 only), or when using real RPI3 board
+#define RPI3 //enable when doing emulation with QEMU (support RPI3 only), or when using real RPI3 board
 
 #ifdef RPI3 //RPI3
     #define MMIO_BASE 0x3F000000
