@@ -13,7 +13,7 @@ DoorsOS is not just an assigment but also a small passion project for me to expe
   - A simple `home` screen.
   - Command history navigable with `_` and `+` keys.
   - Commands such as `help`, `clear`, and `setcolor` for basic interactions.
-  - UART settings such as `setbaud`, `setdatabits`, `setstopbits`, `setparity`, and `setflowcontrol`.
+  - UART settings such as `setbaud`, `setdatabits`, `setstopbits`, `setparity`, and `setflowcontrol` for hardware config.
 - **ANSI Terminal Formatting:** Utilize ANSI escape sequences to set text and background colors. Helpful references:
   - [ANSI Escape Codes](https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797)
   - [Terminal Colors](https://chrisyeh96.github.io/2020/03/28/terminal-colors.html)
@@ -28,13 +28,16 @@ DoorsOS is not just an assigment but also a small passion project for me to expe
    ```
 2. **Navigate to the project directory:**
    ```bash
-   cd ./EEET2490-Embedded-System-Assignment-2 
+   cd ./EEET2490-Embedded-System-Assignment-2/
    ```
 3. **Build the project:**
    ```bash
    make all
    ```
 4. **Run the OS on your Raspberry Pi or through QEMU emulation.**
+   ```bash
+   For Raspberry Pi 4, change GPIO to RPI4 as QEMU emulation only support Raspberry Pi 3.
+   ```
 
 ## UART Configuration
 Enhanced UART driver to support various configurations:
