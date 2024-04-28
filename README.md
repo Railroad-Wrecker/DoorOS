@@ -10,8 +10,10 @@ DoorsOS is not just an assigment but also a small passion project for me to expe
 - **Welcome Message:** Displays a customizable welcome message in ASCII art on boot up. Use tools like [ASCII Art Generator](https://onlineasciitools.com/convert-text-to-ascii-art) to create your own designs.
 - **Command Line Interpreter (CLI):** A simple CLI that supports:
   - Auto-completion using the TAB key.
+  - A simple `home` screen.
   - Command history navigable with `_` and `+` keys.
   - Commands such as `help`, `clear`, and `setcolor` for basic interactions.
+  - UART settings such as `setbaud`, `setdatabits`, `setstopbits`, `setparity`, and `setflowcontrol`.
 - **ANSI Terminal Formatting:** Utilize ANSI escape sequences to set text and background colors. Helpful references:
   - [ANSI Escape Codes](https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797)
   - [Terminal Colors](https://chrisyeh96.github.io/2020/03/28/terminal-colors.html)
