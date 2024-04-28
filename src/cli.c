@@ -21,8 +21,8 @@ const char *commandDescriptions[] = {
     "Sets the UART baud rate. Example: setbaud 115200",
     "Sets the UART data bits (5, 6, 7 or 8). Example: setdatabits 8",
     "Sets the UART stop bits (1 or 2). Example: setstopbits 1",
-    "Sets the UART parity (N, E or O). Example: setparity N",
-    "Sets the UART hardware flow control (N = Disable, E = Enable). Example: setflowcontrol N"
+    "Sets the UART parity (N for None, E for Even, O for Odd). Example: setparity N",
+    "Sets the UART hardware handshake (N for None, E for Enable). Example: setflowcontrol N",
 };
 
 // Simple isspace implementation
@@ -145,122 +145,105 @@ void processCommand(const char *cmd) {
         case 6:
             // Set Data Bits
             if (strncmp(cmd, "setdatabits ", 12) == 0) {
-
-                // Turn off uart before changing data bits
+                // Turn off UART0 before changing data bits
                 UART0_CR = 0x0;
-                int data_bits = simple_atoi(cmd + 12);
-                unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
 
-                // Set data bits
-                switch (data_bits)
-                {
-                    case 5: lcrh |= UART0_LCRH_WLEN_5BIT; break;
-                    case 6: lcrh |= UART0_LCRH_WLEN_6BIT; break;
-                    case 7: lcrh |= UART0_LCRH_WLEN_7BIT; break;
-                    case 8: lcrh |= UART0_LCRH_WLEN_8BIT; break;
-                    default: lcrh |= UART0_LCRH_WLEN_8BIT; break; // Default to 8 bits
+                // Parse the number of data bits from the command
+                int data_bits = simple_atoi(cmd + 12);
+                if (data_bits < 5 || data_bits > 8) {
+                    printf("Invalid data bits. Must be between 5 and 8.\n");
+                    return; // Add error handling for invalid data bits
                 }
+
+                // Read current LCRH, clear the data bits field, and set new data bits
+                unsigned int lcrh = UART0_LCRH & ~UART0_LCRH_WLEN_MASK;
+                lcrh |= set_data_bits(data_bits); // Set the new data bits
+
+                // Write the updated value back to the LCRH register
+                UART0_LCRH = lcrh;
+
+                // Re-enable UART0 after configuration
+                UART0_CR = 0x301;
 
                 UART0_LCRH = lcrh;
 
-                // Restart UART
-                UART0_CR = 0x301;
-
-                // Apply line control settings
-                UART0_LCRH = set_data_bits(data_bits);
-
-
+                // Print confirmation message
                 printf("Data bits set to %d\n", data_bits);
             }
             break;
         case 7:
             // Set Stop Bits
             if (strncmp(cmd, "setstopbits ", 12) == 0) {
-
-                // Turn off uart before changing stop bits
+                // Turn off UART0 before changing stop bits
                 UART0_CR = 0x0;
 
+                // Parse the number of stop bits from the command
                 int stop_bits = simple_atoi(cmd + 12);
-                unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
-
-                // Set stop bits
-                if (stop_bits == 2)
-                {
-                    lcrh |= UART0_LCRH_STP2; // 2 stop bits
-                } else {
-                    lcrh &= ~UART0_LCRH_STP2; // 1 stop bit
+                if (stop_bits != 1 && stop_bits != 2) {
+                    printf("Invalid stop bits. Must be 1 or 2.\n");
+                    return; // Add error handling for invalid stop bits
                 }
+
+                // Read current LCRH, clear the stop bits field, and set new stop bits
+                unsigned int lcrh = UART0_LCRH & ~UART0_LCRH_STP2; // Clear the stop bits
+                lcrh |= set_stop_bits(stop_bits); // Set the new stop bits
+
+                
+                // Write the updated value back to the LCRH register
+                UART0_LCRH = lcrh;
+
+                // Re-enable UART0 after configuration
+                UART0_CR = 0x301;
 
                 UART0_LCRH = lcrh;
 
-                // Restart UART
-                UART0_CR = 0x301;
-
-                // Apply line control settings
-                UART0_LCRH = set_stop_bits(stop_bits);
-                
+                // Print confirmation message
                 printf("Stop bits set to %d\n", stop_bits);
             }
             break;
         case 8:
             // Set Parity
             if (strncmp(cmd, "setparity ", 10) == 0) {
-                
-                // Turn off uart before changing parity
+                // Turn off UART0 before changing parity
                 UART0_CR = 0x0;
-                
-                char parity = cmd[10];
-                unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
-                
-                // Set parity
-                switch (parity)
-                {
-                    case 'E': lcrh |= UART0_LCRH_PEN; break; // Enable parity, even by default
-                    case 'O': lcrh |= UART0_LCRH_PEN | UART0_LCRH_EPS; break; // Enable parity, odd
-                    default: printf("Parity set to none\n"); break; // No parity
-                }
+
+                // Parse the parity setting from the command
+                char parity = cmd[10]; // Assuming this gets you the correct character for parity
+
+                // Read current LCRH, clear the parity bits, then set new parity
+                unsigned int lcrh = UART0_LCRH & ~(UART0_LCRH_EPS | UART0_LCRH_PEN); // Clear parity bits
+                lcrh |= set_parity(parity); // Apply new parity settings
+
+                // Write the updated value back to the LCRH register
+                UART0_LCRH = lcrh;
+
+                // Re-enable UART0 after configuration
+                UART0_CR = 0x301;
 
                 UART0_LCRH = lcrh;
 
-                // Restart UART
-                UART0_CR = 0x301;
-                
-                // Apply line control settings
-                UART0_LCRH = set_parity(parity);
-
-                // Print parity setting
-                if (parity == 'E') {
-                    printf("Parity set to even\n");
-                } else if (parity == 'O') {
-                    printf("Parity set to odd\n");
-                } else {
-                    printf("Parity set to none\n");
-                }
+                // Print confirmation message based on the parity setting
+                printf("Parity set to %c\n", parity);
             }
             break;
         case 9:
             // Set Hardware Handshake (CTS/RTS)
             if (strncmp(cmd, "setflowcontrol ", 15) == 0) {
-                // Turn off uart before changing handshake
+                // Turn off UART0 before changing flow control
                 UART0_CR = 0x0;
 
-                char flow_control = cmd[15]; // Get the flow control character
-                unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
+                // Parse the flow control setting from the command
+                char flow_control = cmd[15]; // Assuming this gets you the correct character for flow control
 
-                // Set handshake control (RTS/CTS)
-                if (flow_control == 'E') {
-                    lcrh |= UART0_CR_CTSEN | UART0_CR_RTSEN; // Enable RTS/CTS
-                    printf("RTS/CTS flow control enabled\n");
-                } else {
-                    lcrh &= ~(UART0_CR_CTSEN | UART0_CR_RTSEN); // Disable RTS/CTS
-                    printf("RTS/CTS flow control disabled\n");
-                }
+                // Clear the RTS/CTS bits, then set new flow control
+                UART0_CR &= ~(UART0_CR_RTSEN | UART0_CR_CTSEN); // Clear flow control bits
+                UART0_CR |= set_rts_cts(flow_control); // Apply new flow control settings
 
-                // Apply line control settings
-                UART0_LCRH = lcrh;
+                // Re-enable UART0 after configuration
+                UART0_CR |= 0x301; // Reapply the enable bits
 
-                // Restart UART
-                UART0_CR = 0x301;
+                // Print confirmation message based on the flow control setting
+                printf("Flow control set to %c\n", flow_control);
             }
             break;
         case 10:
@@ -290,7 +273,11 @@ void processCommand(const char *cmd) {
 
                 // Display parity
                 if (UART0_LCRH & UART0_LCRH_PEN) {
-                    printf("Parity: %s\n", (UART0_LCRH & UART0_LCRH_EPS) ? "Odd" : "Even");
+                    if (UART0_LCRH & UART0_LCRH_EPS) {
+                        printf("Parity: Even\n");
+                    } else {
+                        printf("Parity: Odd\n");
+                    }
                 } else {
                     printf("Parity: None\n");
                 }
@@ -299,8 +286,7 @@ void processCommand(const char *cmd) {
                 printf("Stop bits: %s\n", (UART0_LCRH & UART0_LCRH_STP2) ? "2" : "1");
 
                 // Display RTS/CTS flow control
-                printf("RTS/CTS Flow Control: %s\n",
-                    (UART0_CR & (UART0_CR_CTSEN | UART0_CR_RTSEN)) == (UART0_CR_CTSEN | UART0_CR_RTSEN) ? "Enabled" : "Disabled");
+                printf("RTS/CTS flow control: %s\n", (UART0_CR & UART0_CR_RTSEN) ? "Enabled" : "Disabled");
 
             }
             break;

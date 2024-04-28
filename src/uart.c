@@ -3,6 +3,13 @@
 // Define constants for UART configuration
 #define UART_CLOCK 48000000 // Default UART clock frequency
 
+// Define default UART settings
+unsigned int baud_rate = 115200; // Default baud rate
+unsigned int data_bits = 8; // Default data bits
+char parity = 'N'; // Default parity
+unsigned int stop_bits = 1; // Default stop bits
+char rts_cts = 'N'; // Default RTS/CTS flow control
+
 /**
  * Initialize UART with default settings and map to GPIO
  */
@@ -41,12 +48,18 @@ void uart_init()
     UART0_ICR = 0x7FF;
 
     /* Set default baud rate (115200) */
-    uart_set_baud_rate(115200);
+    uart_set_baud_rate(baud_rate);
 
-    /* Set default line control settings (8 data bits, no parity, 1 stop bit, no flow control) */
-    uart_set_line_control(8, 'N', 1, 'E');
+    // Set default line control settings in one operation
+    unsigned int lcrh = UART0_LCRH_FEN; // Start with enabling FIFO
+    lcrh |= set_data_bits(data_bits);   // Add data bits configuration
+    lcrh |= set_parity(parity);         // Add parity configuration
+    lcrh |= set_stop_bits(stop_bits);   // Add stop bits configuration
+    UART0_LCRH = lcrh;                  // Set the line control register
 
-    /* Enable UART0, receive, and transmit */
+    set_rts_cts(rts_cts);               // Configure RTS/CTS flow control separately
+
+    // Enable UART0, receive, and transmit
     UART0_CR = 0x301; // Enable Tx, Rx, FIFO
 }
 
@@ -65,30 +78,21 @@ void uart_set_baud_rate(unsigned int baud_rate)
     UART0_FBRD = fbrd;
 }
 
-/**
- * Set UART line control settings
- * @param data_bits Number of data bits (5 to 8)
- * @param parity Type of parity ('N' for none, 'E' for even, 'O' for odd)
- * @param stop_bits Number of stop bits (1 or 2)
- * @param rts_cts Enable RTS/CTS flow control (0 for disabled, 1 for enabled)
- */
-
 // Function to set the number of data bits
 unsigned int set_data_bits(unsigned int data_bits) {
     switch (data_bits) {
-        case 5: return UART0_LCRH_WLEN_5BIT;
-        case 6: return UART0_LCRH_WLEN_6BIT;
-        case 7: return UART0_LCRH_WLEN_7BIT;
-        case 8: return UART0_LCRH_WLEN_8BIT;
-        default: return UART0_LCRH_WLEN_8BIT; // Default to 8 bits
+        case 5: return UART0_LCRH_WLEN_5BIT; // 5-bit data
+        case 6: return UART0_LCRH_WLEN_6BIT; // 6-bit data
+        case 7: return UART0_LCRH_WLEN_7BIT; // 7-bit data
+        default: return UART0_LCRH_WLEN_8BIT; // 8-bit data
     }
 }
 
 // Function to set the parity
 unsigned int set_parity(char parity) {
     switch (parity) {
-        case 'E': return UART0_LCRH_PEN; // Enable parity, even by default
-        case 'O': return UART0_LCRH_PEN | UART0_LCRH_EPS; // Enable parity, odd
+        case 'E': return UART0_LCRH_EPS | UART0_LCRH_PEN; // Even parity
+        case 'O': return UART0_LCRH_PEN; // Odd parity
         default: return 0; // No parity
     }
 }
@@ -98,38 +102,13 @@ unsigned int set_stop_bits(unsigned int stop_bits) {
     return (stop_bits == 2) ? UART0_LCRH_STP2 : 0; // 2 stop bits, 0 otherwise
 }
 
-// Function to enable or disable RTS/CTS flow control
+// Function to return the bit mask for RTS/CTS flow control
 unsigned int set_rts_cts(char rts_cts) {
     if (rts_cts == 'E') {
-        return UART0_CR_CTSEN | UART0_CR_RTSEN; // Enable RTS/CTS
+        return UART0_CR_RTSEN | UART0_CR_CTSEN; // Bit mask to enable RTS/CTS flow control
     } else {
-        return 0; // Disable RTS/CTS
+        return 0; // No bits set, flow control is disabled
     }
-}
-
-// Main function to set UART line control settings
-void uart_set_line_control(unsigned int data_bits, char parity, unsigned int stop_bits, unsigned int rts_cts) {
-    // Turn off UART0 before changing settings
-    UART0_CR &= ~UART0_CR_UARTEN;
-    // printf("UART0 disabled for configuration\n");
-
-    unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
-    // printf("FIFO enabled\n");
-
-    lcrh |= set_data_bits(data_bits); // Set data bits
-    lcrh |= set_parity(parity);       // Set parity
-    lcrh |= set_stop_bits(stop_bits); // Set stop bits
-
-    // Set handshake control (RTS/CTS)
-    lcrh |= set_rts_cts(rts_cts);
-
-    // Apply line control settings
-    UART0_LCRH = lcrh;
-    // printf("UART line control settings applied\n");
-
-    // Re-enable UART0 after configuration
-    UART0_CR |= UART0_CR_UARTEN;
-    // printf("UART0 re-enabled after configuration\n");
 }
 
 /**
