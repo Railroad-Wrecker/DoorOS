@@ -1,3 +1,6 @@
+![image](https://github.com/Railroad-Wrecker/EEET2490-Embedded-System-DoorsOS/assets/30015283/341093ab-414e-48fe-9e7a-0ab450a33623)
+
+
 
 # DoorsOS
 
