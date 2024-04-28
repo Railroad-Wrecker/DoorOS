@@ -42,13 +42,6 @@ Enhanced UART driver to support various configurations:
 - Parity: None, Even, Odd.
 - Handshaking: CTS/RTS.
 
-## Reflection and Learning
-This project also includes a reflection on the practical experiences and learning outcomes related to bare metal OS development, linking these experiences with the skills demanded by job roles in embedded software engineering.
-
-## Additional Resources
-- **TinkerCad Circuits:** For experimenting with microcontrollers and sensors.
-  [Explore TinkerCad Circuits](https://www.tinkercad.com/learn/circuits)
-
 ## Contributors
 - Luong Nguyen
 
