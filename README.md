@@ -1,5 +1,5 @@
 
-# EEET2490 Embedded System: OS and Interfacing Assignment
+# DoorsOS
 
 ## Overview
 This project is part of the EEET2490 course at RMIT University, focusing on bare metal development of an operating system to enhance practical skills in embedded OS through the implementation of various features like a command-line interpreter (CLI), terminal formatting using ANSI codes, and handling variable arguments with a standard printf function.
