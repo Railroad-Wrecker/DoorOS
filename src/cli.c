@@ -4,11 +4,12 @@
 #define MAX_CMD_SIZE 100
 #define UART_CLOCK 48000000 // Default UART clock frequency
 
-unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
+
 
 // Updated command array
 const char *commands[] = {"help", "clear", "setcolor", "showinfo", "home", "setbaud", 
-                        "setdatabits", "setstopbits", "setparity", "sethandshake"};
+                        "setdatabits", "setstopbits", "setparity", "setflowcontrol",
+                        "currentuartsettings"};
 
 // Updated command descriptions array
 const char *commandDescriptions[] = {
@@ -21,7 +22,7 @@ const char *commandDescriptions[] = {
     "Sets the UART data bits (5, 6, 7 or 8). Example: setdatabits 8",
     "Sets the UART stop bits (1 or 2). Example: setstopbits 1",
     "Sets the UART parity (N, E or O). Example: setparity N",
-    "Sets the UART hardware handshake (N = Disable, C = CTS, R = RTS, B = Both). Example: sethandshake N"
+    "Sets the UART hardware flow control (N = Disable, E = Enable). Example: setflowcontrol N"
 };
 
 // Simple isspace implementation
@@ -39,25 +40,6 @@ static int simple_atoi(const char *str) {
     return res;
 }
 
-// Helper function to find length of string (replacing strlen)
-static int uart_strlen(const char *s) {
-    int length = 0;
-    while (*s++) length++;
-    return length;
-}
-
-// Helper function to compare strings (replacing strncmp)
-static int uart_strncmp(const char *s1, const char *s2, int n) {
-    while (n--) {
-        if (*s1 != *s2) {
-            return *(unsigned char *)s1 - *(unsigned char *)s2;
-        }
-        if (*s1 == '\0') break;
-        s1++;
-        s2++;
-    }
-    return 0;
-}
 
 // Process a command from user input
 void processCommand(const char *cmd) {
@@ -102,11 +84,9 @@ void processCommand(const char *cmd) {
 
     switch (commandIndex) {
         case 0:
-            help();
-            break;
+            help(); break;
         case 1:
-            clear();
-            break;
+            clear(); break;
         case 2:
             // Check if the command is "setcolor"
             if (strncmp(cmd, "setcolor", 7) == 0) {
@@ -141,14 +121,12 @@ void processCommand(const char *cmd) {
             }
             break;
         case 3:
-            showInfo();
-            break;
+            showInfo(); break;
         case 4:
-            home();
-            break;
+            home();break;
         case 5:
             // Set Baud Rate
-            if (uart_strncmp(cmd, "setbaud ", 8) == 0) {
+            if (strncmp(cmd, "setbaud ", 8) == 0) {
                 // Turn off uart before changing baud rate
                 UART0_CR = 0x0;
                 int baud_rate = simple_atoi(cmd + 8);
@@ -162,17 +140,16 @@ void processCommand(const char *cmd) {
                 // Restart UART
                 UART0_CR = 0x301;
                 printf("Baud rate set to %d\n", baud_rate);
-                // Update UART settings
-                // uart_update_settings(baud_rate, 0, 'N', 1);
             } 
             break;
         case 6:
             // Set Data Bits
-            if (uart_strncmp(cmd, "setdatabits ", 12) == 0) {
+            if (strncmp(cmd, "setdatabits ", 12) == 0) {
 
                 // Turn off uart before changing data bits
                 UART0_CR = 0x0;
                 int data_bits = simple_atoi(cmd + 12);
+                unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
 
                 // Set data bits
                 switch (data_bits)
@@ -189,19 +166,22 @@ void processCommand(const char *cmd) {
                 // Restart UART
                 UART0_CR = 0x301;
 
+                // Apply line control settings
+                UART0_LCRH = set_data_bits(data_bits);
+
+
                 printf("Data bits set to %d\n", data_bits);
-                // Update UART settings
-                // uart_update_settings(0, data_bits, 'N', 1);
             }
             break;
         case 7:
             // Set Stop Bits
-            if (uart_strncmp(cmd, "setstopbits ", 12) == 0) {
+            if (strncmp(cmd, "setstopbits ", 12) == 0) {
 
                 // Turn off uart before changing stop bits
                 UART0_CR = 0x0;
 
                 int stop_bits = simple_atoi(cmd + 12);
+                unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
 
                 // Set stop bits
                 if (stop_bits == 2)
@@ -215,35 +195,40 @@ void processCommand(const char *cmd) {
 
                 // Restart UART
                 UART0_CR = 0x301;
+
+                // Apply line control settings
+                UART0_LCRH = set_stop_bits(stop_bits);
                 
                 printf("Stop bits set to %d\n", stop_bits);
-                // Update UART settings
-                // uart_update_settings(0, 8, 'N', stop_bits);
             }
             break;
         case 8:
             // Set Parity
-            if (uart_strncmp(cmd, "setparity ", 10) == 0) {
+            if (strncmp(cmd, "setparity ", 10) == 0) {
                 
                 // Turn off uart before changing parity
                 UART0_CR = 0x0;
                 
                 char parity = cmd[10];
+                unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
                 
                 // Set parity
                 switch (parity)
                 {
                     case 'E': lcrh |= UART0_LCRH_PEN; break; // Enable parity, even by default
                     case 'O': lcrh |= UART0_LCRH_PEN | UART0_LCRH_EPS; break; // Enable parity, odd
-                    default: break; // No parity
+                    default: printf("Parity set to none\n"); break; // No parity
                 }
 
                 UART0_LCRH = lcrh;
 
                 // Restart UART
                 UART0_CR = 0x301;
+                
+                // Apply line control settings
+                UART0_LCRH = set_parity(parity);
 
-                // Print if parity is even, odd or none
+                // Print parity setting
                 if (parity == 'E') {
                     printf("Parity set to even\n");
                 } else if (parity == 'O') {
@@ -251,41 +236,72 @@ void processCommand(const char *cmd) {
                 } else {
                     printf("Parity set to none\n");
                 }
-                // Update UART settings
-                // uart_update_settings(0, 8, parity, 1);
             }
             break;
         case 9:
             // Set Hardware Handshake (CTS/RTS)
-            if (uart_strncmp(cmd, "sethandshake ", 10) == 0) {
+            if (strncmp(cmd, "setflowcontrol ", 15) == 0) {
                 // Turn off uart before changing handshake
                 UART0_CR = 0x0;
-                char handshake = cmd[10];
-                switch (handshake)
-                {
-                    case 'N': UART0_CR &= ~UART0_CR_CTSEN; UART0_CR &= ~UART0_CR_RTSEN; break; // Disable CTS/RTS
-                    case 'C': UART0_CR |= UART0_CR_CTSEN; UART0_CR &= ~UART0_CR_RTSEN; break; // Enable CTS only
-                    case 'R': UART0_CR &= ~UART0_CR_CTSEN; UART0_CR |= UART0_CR_RTSEN; break; // Enable RTS only
-                    case 'B': UART0_CR |= UART0_CR_CTSEN; UART0_CR |= UART0_CR_RTSEN; break; // Enable both CTS and RTS
-                    default: break; // No handshake
+
+                char flow_control = cmd[15]; // Get the flow control character
+                unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
+
+                // Set handshake control (RTS/CTS)
+                if (flow_control == 'E') {
+                    lcrh |= UART0_CR_CTSEN | UART0_CR_RTSEN; // Enable RTS/CTS
+                    printf("RTS/CTS flow control enabled\n");
+                } else {
+                    lcrh &= ~(UART0_CR_CTSEN | UART0_CR_RTSEN); // Disable RTS/CTS
+                    printf("RTS/CTS flow control disabled\n");
                 }
+
+                // Apply line control settings
+                UART0_LCRH = lcrh;
+
                 // Restart UART
                 UART0_CR = 0x301;
+            }
+            break;
+        case 10:
+            // Display current UART settings          
+            if (strncmp(cmd, "currentuartsettings", 19) == 0) {
+                
+                printf("Current UART Settings:\n");
 
-                // Print if handshake status
-                if (handshake == 'N') {
-                    printf("Hardware handshake disabled\n");
-                } else if (handshake == 'C') {
-                    printf("CTS flow control enabled\n");
-                } else if (handshake == 'R') {
-                    printf("RTS flow control enabled\n");
-                } else if (handshake == 'B') {
-                    printf("CTS and RTS flow control enabled\n");
-                } else {
-                    printf("Hardware handshake not set\n");
+                // Display baud rate
+                unsigned int ibrd = UART0_IBRD;
+                unsigned int fbrd = UART0_FBRD;
+                unsigned int baud_rate = UART_CLOCK / (16 * (ibrd + (fbrd / 64.0)));
+                printf("Baud rate: %d\n", baud_rate);
+
+                // Display FIFO status
+                printf("FIFO: %s\n", (UART0_LCRH & UART0_LCRH_FEN) ? "Enabled" : "Disabled");
+
+                // Display data bits
+                printf("Data bits: ");
+                switch (UART0_LCRH & 0x60) {
+                    case UART0_LCRH_WLEN_5BIT: printf("5\n"); break;
+                    case UART0_LCRH_WLEN_6BIT: printf("6\n"); break;
+                    case UART0_LCRH_WLEN_7BIT: printf("7\n"); break;
+                    case UART0_LCRH_WLEN_8BIT: printf("8\n"); break;
+                    default: printf("Unknown\n"); break;
                 }
-                // Update UART settings
-                // uart_update_settings(0, 8, 'N', 1);
+
+                // Display parity
+                if (UART0_LCRH & UART0_LCRH_PEN) {
+                    printf("Parity: %s\n", (UART0_LCRH & UART0_LCRH_EPS) ? "Odd" : "Even");
+                } else {
+                    printf("Parity: None\n");
+                }
+
+                // Display stop bits
+                printf("Stop bits: %s\n", (UART0_LCRH & UART0_LCRH_STP2) ? "2" : "1");
+
+                // Display RTS/CTS flow control
+                printf("RTS/CTS Flow Control: %s\n",
+                    (UART0_CR & (UART0_CR_CTSEN | UART0_CR_RTSEN)) == (UART0_CR_CTSEN | UART0_CR_RTSEN) ? "Enabled" : "Disabled");
+
             }
             break;
         default:

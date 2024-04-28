@@ -151,9 +151,12 @@
 /* Function prototypes */
 void uart_init();
 void uart_set_baud_rate(unsigned int baud_rate);
-void uart_set_line_control(unsigned int data_bits, char parity, unsigned int stop_bits);
-void uart_update_settings(unsigned int baud_rate, unsigned int data_bits, char parity, unsigned int stop_bits);
-void uart_restart();
+void uart_set_line_control(unsigned int data_bits, char parity, unsigned int stop_bits, unsigned int rts_cts);
+
+unsigned int set_data_bits(unsigned int data_bits);
+unsigned int set_parity(char parity);
+unsigned int set_stop_bits(unsigned int stop_bits);
+unsigned int set_rts_cts(char rts_cts);
 
 void uart_sendc(char c);
 char uart_getc();

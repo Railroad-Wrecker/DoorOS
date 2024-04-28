@@ -43,8 +43,8 @@ void uart_init()
     /* Set default baud rate (115200) */
     uart_set_baud_rate(115200);
 
-    /* Set default configuration: 8 data bits, no parity, 1 stop bit */
-    uart_set_line_control(8, 'N', 1);
+    /* Set default line control settings (8 data bits, no parity, 1 stop bit, no flow control) */
+    uart_set_line_control(8, 'N', 1, 'E');
 
     /* Enable UART0, receive, and transmit */
     UART0_CR = 0x301; // Enable Tx, Rx, FIFO
@@ -70,67 +70,66 @@ void uart_set_baud_rate(unsigned int baud_rate)
  * @param data_bits Number of data bits (5 to 8)
  * @param parity Type of parity ('N' for none, 'E' for even, 'O' for odd)
  * @param stop_bits Number of stop bits (1 or 2)
+ * @param rts_cts Enable RTS/CTS flow control (0 for disabled, 1 for enabled)
  */
-void uart_set_line_control(unsigned int data_bits, char parity, unsigned int stop_bits)
-{
+
+// Function to set the number of data bits
+unsigned int set_data_bits(unsigned int data_bits) {
+    switch (data_bits) {
+        case 5: return UART0_LCRH_WLEN_5BIT;
+        case 6: return UART0_LCRH_WLEN_6BIT;
+        case 7: return UART0_LCRH_WLEN_7BIT;
+        case 8: return UART0_LCRH_WLEN_8BIT;
+        default: return UART0_LCRH_WLEN_8BIT; // Default to 8 bits
+    }
+}
+
+// Function to set the parity
+unsigned int set_parity(char parity) {
+    switch (parity) {
+        case 'E': return UART0_LCRH_PEN; // Enable parity, even by default
+        case 'O': return UART0_LCRH_PEN | UART0_LCRH_EPS; // Enable parity, odd
+        default: return 0; // No parity
+    }
+}
+
+// Function to set the number of stop bits
+unsigned int set_stop_bits(unsigned int stop_bits) {
+    return (stop_bits == 2) ? UART0_LCRH_STP2 : 0; // 2 stop bits, 0 otherwise
+}
+
+// Function to enable or disable RTS/CTS flow control
+unsigned int set_rts_cts(char rts_cts) {
+    if (rts_cts == 'E') {
+        return UART0_CR_CTSEN | UART0_CR_RTSEN; // Enable RTS/CTS
+    } else {
+        return 0; // Disable RTS/CTS
+    }
+}
+
+// Main function to set UART line control settings
+void uart_set_line_control(unsigned int data_bits, char parity, unsigned int stop_bits, unsigned int rts_cts) {
+    // Turn off UART0 before changing settings
+    UART0_CR &= ~UART0_CR_UARTEN;
+    // printf("UART0 disabled for configuration\n");
+
     unsigned int lcrh = UART0_LCRH_FEN; // Enable FIFO
+    // printf("FIFO enabled\n");
 
-    // Set data bits
-    switch (data_bits)
-    {
-        case 5: lcrh |= UART0_LCRH_WLEN_5BIT; break;
-        case 6: lcrh |= UART0_LCRH_WLEN_6BIT; break;
-        case 7: lcrh |= UART0_LCRH_WLEN_7BIT; break;
-        case 8: lcrh |= UART0_LCRH_WLEN_8BIT; break;
-        default: lcrh |= UART0_LCRH_WLEN_8BIT; break; // Default to 8 bits
-    }
+    lcrh |= set_data_bits(data_bits); // Set data bits
+    lcrh |= set_parity(parity);       // Set parity
+    lcrh |= set_stop_bits(stop_bits); // Set stop bits
 
-    // Set parity
-    switch (parity)
-    {
-        case 'E': lcrh |= UART0_LCRH_PEN; break; // Enable parity, even by default
-        case 'O': lcrh |= UART0_LCRH_PEN | UART0_LCRH_EPS; break; // Enable parity, odd
-        default: break; // No parity
-    }
+    // Set handshake control (RTS/CTS)
+    lcrh |= set_rts_cts(rts_cts);
 
-    // Set stop bits
-    if (stop_bits == 2)
-    {
-        lcrh |= UART0_LCRH_STP2; // 2 stop bits
-    }
-
+    // Apply line control settings
     UART0_LCRH = lcrh;
-}
+    // printf("UART line control settings applied\n");
 
-/**
- * Update UART settings and restart to apply
- */
-void uart_update_settings(unsigned int baud_rate, unsigned int data_bits, char parity, unsigned int stop_bits)
-{
-    // First, stop the UART to prepare for settings change
-    UART0_CR = 0x0;
-
-    // Apply new settings
-    uart_set_baud_rate(baud_rate);
-    uart_set_line_control(data_bits, parity, stop_bits);
-
-    // Restart the UART to apply new settings
-    uart_restart();
-}
-
-/**
- * Restart the UART after updating settings
- */
-void uart_restart()
-{
-    // Reset the UART registers to apply settings changes
-    UART0_ICR = 0x7FF; // Clear pending interrupts
-
-    // Re-enable the UART, receive, and transmit
-    UART0_CR = 0x301; // Enable Tx, Rx, FIFO
-
-    // Print a message to indicate UART has been restarted
-    uart_puts("UART restarted with new settings\n");
+    // Re-enable UART0 after configuration
+    UART0_CR |= UART0_CR_UARTEN;
+    // printf("UART0 re-enabled after configuration\n");
 }
 
 /**
