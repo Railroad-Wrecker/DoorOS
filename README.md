@@ -19,7 +19,7 @@ DoorsOS is not just an assigment but also a small passion project for me to expe
   - [Terminal Colors](https://chrisyeh96.github.io/2020/03/28/terminal-colors.html)
 
 ## Hardware Support
-- The software is designed to run on a Raspberry Pi, and functionality has been tested with QEMU emulation and actual hardware. Board information can be verified using instructions from [Raspberry Pi Board Version](https://www.raspberrypi-spy.co.uk/2012/09/checking-your-raspberry-pi-board-version/).
+- The software is designed to run on a Raspberry Pi 3/4, and functionality has been tested with QEMU emulation and actual hardware. Board information can be verified using instructions from [Raspberry Pi Board Version](https://www.raspberrypi-spy.co.uk/2012/09/checking-your-raspberry-pi-board-version/).
 
 ## Getting Started
 1. **Clone the repository:**
