@@ -1,10 +1,9 @@
-
-# DoorsOS
+![image](https://github.com/Railroad-Wrecker/EEET2490-Embedded-System-DoorsOS/assets/30015283/341093ab-414e-48fe-9e7a-0ab450a33623)
 
 ## Overview
 This project is part of the EEET2490 course at RMIT University, focusing on bare metal development of an operating system to enhance practical skills in embedded OS through the implementation of various features like a command-line interpreter (CLI), terminal formatting using ANSI codes, and handling variable arguments with a standard printf function.
 
-DoorsOS is not just an assigment but also a small passion project for me to experience with low level programming and creating a simple, yet my very own OS system.
+DoorOS is not just an assigment but also a small passion project for me to experience with low level programming and creating a simple, yet my very own OS system.
 
 ## Features
 - **Welcome Message:** Displays a customizable welcome message in ASCII art on boot up. Use tools like [ASCII Art Generator](https://onlineasciitools.com/convert-text-to-ascii-art) to create your own designs.
