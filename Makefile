@@ -10,7 +10,7 @@ GCCFLAGS = -Wall -O2 -ffreestanding -nostdinc -nostdlib -nostartfiles
 all: clean kernel8.img run
 
 $(BUILD_DIR)/boot.o: $(SRC_DIR)/boot.S
-	aarch64-none-elf-gcc $(GCCFLAGS) -c $< -o $@
+	aarch64-none-elf-gcc $(GCCFLAGS) -c $< -o $@ 
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	aarch64-none-elf-gcc $(GCCFLAGS) -c $< -o $@
