@@ -138,7 +138,7 @@ void cli() {
             index--;
             cli_buffer[index] = '\0';
         }
-    } else if (c == '_') { // Move down in history
+    } else if (c == '_') { // Move down in history using shift and -
         for(int i = 0; i < strlen(cli_buffer)+1; i++){
             uart_sendc(0x08);
             uart_sendc(' ');
