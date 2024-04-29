@@ -4,12 +4,10 @@
 #define MAX_CMD_SIZE 100
 #define UART_CLOCK 48000000 // Default UART clock frequency
 
-
-
 // Updated command array
-const char *commands[] = {"help", "clear", "setcolor", "showinfo", "home", "setbaud", 
-                        "setdatabits", "setstopbits", "setparity", "setflowcontrol",
-                        "currentuartsettings"};
+const char *commands[] = {"help", "clear", "setcolor", "showinfo", 
+                        "home", "setbaud", "setdatabits", "setstopbits", 
+                        "setparity", "setflowcontrol", "currentuartsettings"};
 
 // Updated command descriptions array
 const char *commandDescriptions[] = {
@@ -163,9 +161,7 @@ void processCommand(const char *cmd) {
                 UART0_LCRH = lcrh;
 
                 // Re-enable UART0 after configuration
-                UART0_CR = 0x301;
-
-                UART0_LCRH = lcrh;
+                UART0_CR = 0x301;UART0_LCRH = lcrh;
 
                 // Print confirmation message
                 printf("Data bits set to %d\n", data_bits);
@@ -193,9 +189,7 @@ void processCommand(const char *cmd) {
                 UART0_LCRH = lcrh;
 
                 // Re-enable UART0 after configuration
-                UART0_CR = 0x301;
-
-                UART0_LCRH = lcrh;
+                UART0_CR = 0x301; UART0_LCRH = lcrh;
 
                 // Print confirmation message
                 printf("Stop bits set to %d\n", stop_bits);
@@ -218,9 +212,7 @@ void processCommand(const char *cmd) {
                 UART0_LCRH = lcrh;
 
                 // Re-enable UART0 after configuration
-                UART0_CR = 0x301;
-
-                UART0_LCRH = lcrh;
+                UART0_CR = 0x301; UART0_LCRH = lcrh;
 
                 // Print confirmation message based on the parity setting
                 printf("Parity set to %c\n", parity);
@@ -250,7 +242,7 @@ void processCommand(const char *cmd) {
             // Display current UART settings          
             if (strncmp(cmd, "currentuartsettings", 19) == 0) {
                 
-                printf("Current UART Settings:\n");
+                printf("\nCurrent UART Settings:\n");
 
                 // Display baud rate
                 unsigned int ibrd = UART0_IBRD;
@@ -287,17 +279,15 @@ void processCommand(const char *cmd) {
 
                 // Display RTS/CTS flow control
                 printf("RTS/CTS flow control: %s\n", (UART0_CR & UART0_CR_RTSEN) ? "Enabled" : "Disabled");
-
+                
             }
             break;
         default:
             printf(
-                   "\n"
-                   "+------------------------------------------+\n"
-                   "| Command List                     - [ ] x |\n"
-                   "+==========================================+\n"
-                   "| Invalid command. Please try again!       |\n"
-                   "+------------------------------------------+\n");
+                "\n"
+                "Invalid command.\n"
+                "Type 'help' to display the list of available commands.\n"
+                );
             break;
     }
 }
@@ -313,42 +303,53 @@ void help(){
     "| specific command.                                           |\n"
     "|                                                             |\n"
     "| Commands:                                                   |\n"
-    "|   help      - Display a list of available commands.         |\n"
-    "|   home      - Return to the home screen.                    |\n"
-    "|   clear     - Clear the terminal screen.                    |\n"
-    "|   setcolor  - Adjust text and background colors in the      |\n"
-    "|               terminal.                                     |\n"
-    "|   showinfo  - Display board revision and MAC address.       |\n"
-    "+-------------------------------------------------------------+\n");
+    "|                                                             |\n"
+    "| home            - Return to home.                           |\n"
+    "| help            - Display this help message.                |\n"
+    "| clear           - Clear the terminal screen.                |\n"
+    "| setcolor        - Set text and background colors.           |\n"
+    "| showinfo        - Display board revision and MAC address.   |\n"
+    "|                                                             |\n"
+    "| setbaud         - Set the UART baud rate.                   |\n"
+    "| setdatabits     - Set the UART data bits.                   |\n"
+    "| setstopbits     - Set the UART stop bits.                   |\n"
+    "| setparity       - Set the UART parity.                      |\n"
+    "| setflowcontrol  - Set the UART hardware handshake.          |\n"
+    "|                                                             |\n"
+    "| currentuartsettings - Display current UART settings.        |\n"
+    "+-------------------------------------------------------------+\n"
+    "\n"
+
+    );
 }
 
 void home() {
+    printf("\033[1;31m", "\x1b[40m");
+    // show a Welcome Message when the OS successfully boot up
     printf(
-    "\n"
-    "+----------------------------------------------------------------------------------------------+\n"
-    "|                                                                                              |\n"
-    "|                                                                                              |\n"
-    "|  Welcome to                                                                                  |\n"
-    "|  ________  ________  ________  ________  ________  ________            _____    _____        |\n"                      
-    "| |\\   ___ \\|\\   __  \\|\\   __  \\|\\   __  \\|\\   __  \\|\\   ____\\          / __  \\  / __  \\       |\n"
-    "| \\ \\  \\_|\\ \\ \\  \\|\\  \\ \\  \\|\\  \\ \\  \\|\\  \\ \\  \\|\\  \\ \\  \\___|_        |\\/_|\\  \\|\\/_|\\  \\      |\n"
-    "|  \\ \\  \\ \\\\ \\ \\  \\\\\\  \\ \\  \\\\\\  \\ \\   _  _\\ \\  \\\\\\  \\ \\_____  \\       \\|/ \\ \\  \\|/ \\ \\  \\     |\n"
-    "|   \\ \\  \\_\\\\ \\ \\  \\\\\\  \\ \\  \\\\\\  \\ \\  \\\\  \\\\ \\  \\\\\\  \\|____|\\  \\           \\ \\  \\   \\ \\  \\    |\n"
-    "|    \\ \\_______\\ \\_______\\ \\_______\\ \\__\\\\ _\\\\ \\_______\\____\\_\\  \\           \\ \\__\\   \\ \\__\\   |\n"
-    "|     \\|_______|\\|_______|\\|_______|\\|__|\\|__|\\|_______|\\_________\\           \\|__|    \\|__|   |\n"
-    "|                                                      \\|_________|                            |\n"
-    "|                                                                                              |\n"
-    "|                                                                                              |\n"
-    "|                                                                                              |\n"
-    "|                                                                                              |\n"
-    "|                                                                                              |\n"
-    "|                                                                                              |\n"
-    "|                                                             Activate Doors                   |\n"
-    "|                                                             Go to setting to activate Doors  |\n"
-    "|                                                                                              |\n"
-    "+----------------------------------------------------------------------------------------------+\n"
-    "Type 'help' for a list of available commands.                                  \n");
-
+    "                                                                                          \n"
+    " _______   _______   _______  _________   _______  ___   ___  ________  ________          \n"
+    "|\\  ___ \\ |\\  ___ \\ |\\  ___ \\|\\___   ___\\/  ___  \\|\\  \\ |\\  \\|\\  ___  \\|\\   __  \\         \n"
+    "\\ \\   __/|\\ \\   __/|\\ \\   __/\\|___ \\  \\_/__/|_/  /\\ \\  \\\\ \\  \\ \\____   \\ \\  \\|\\  \\        \n"
+    " \\ \\  \\_|/_\\ \\  \\_|/_\\ \\  \\_|/__  \\ \\  \\|__|//  / /\\ \\______  \\|____|\\  \\ \\  \\\\\\  \\       \n"
+    "  \\ \\  \\_|\\ \\ \\  \\_|\\ \\ \\  \\_|\\ \\  \\ \\  \\   /  /_/__\\|_____|\\  \\  __\\_\\  \\ \\  \\\\\\  \\      \n"
+    "   \\ \\_______\\ \\_______\\ \\_______\\  \\ \\__\\ |\\________\\     \\ \\__\\|\\_______\\ \\_______\\     \n"
+    "    \\|_______|\\|_______|\\|_______|   \\|__|  \\|_______|      \\|__|\\|_______|\\|_______|     \n"
+    "                                                                                          \n"
+    "                                                                                          \n"
+    "                                                                                          \n"
+    "  ________  ________  ________  ________  ________  ________            _____    _____     \n"
+    " |\\   ___ \\|\\   __  \\|\\   __  \\|\\   __  \\|\\   __  \\|\\   ____\\          / __  \\  / __  \\    \n"
+    " \\ \\  \\_|\\ \\ \\  \\|\\  \\ \\  \\|\\  \\ \\  \\|\\  \\ \\  \\|\\  \\ \\  \\___|_        |\\/_|\\  \\|\\/_|\\  \\   \n"
+    "  \\ \\  \\ \\\\ \\ \\  \\\\\\  \\ \\  \\\\\\  \\ \\   _  _\\ \\  \\\\\\  \\ \\_____  \\       \\|/ \\ \\  \\|/ \\ \\  \\  \n"
+    "   \\ \\  \\_\\\\ \\ \\  \\\\\\  \\ \\  \\\\\\  \\ \\  \\\\  \\\\ \\  \\\\\\  \\|____|\\  \\           \\ \\  \\   \\ \\  \\ \n"
+    "    \\ \\_______\\ \\_______\\ \\_______\\ \\__\\\\ _\\\\ \\_______\\____\\_\\  \\           \\ \\__\\   \\ \\__\\\n"
+    "     \\|_______|\\|_______|\\|_______|\\|__|\\|__|\\|_______|\\_________\\           \\|__|    \\|__|\n"
+    "                                                      \\|_________|                         \n"
+    "                                                                                          \n"
+    " Developed by <Nguyen Ngoc Luong> - <S3927460>\n"
+    " DoorOS 11 - 2024 LuongCorp.LLC All rights reserved.\n\n"); 
+    printf("\033[1;37m", "\x1b[40m");
 }
 
 // Function to print help for a specific command
@@ -372,12 +373,9 @@ void printCommandHelp(const char *cmd) {
 
     printf(
     "\n"
-    "+-------------------------------+\n"
-    "| Command List          - [ ] x |\n"
-    "+===============================+\n"
-    "| Error: Command does not exist |\n"
-    "+-------------------------------+\n"
-);
+    "Invalid command.\n"
+    "Type 'help' to display the list of available commands.\n"
+    );
 
 }
 
@@ -404,11 +402,10 @@ void setColor(const char *textColor, const char *backgroundColor) {
     
     printf(
     "\n"
-    "+----------------------------------------------------------------+\n"
-    "| Command List                                           - [ ] x |\n"
-    "+================================================================+\n"
-    "| Please recheck your command or if the color is supported.      |\n"
-    "+----------------------------------------------------------------+\n");
+    "Invalid color settings.\n"
+    "Example Usage: setcolor -b yellow -t white\n"
+    "List of available colors: black, red, green, yellow, blue, purple, cyan, white\n"
+    );
 }
 
 // Displays board revision
@@ -416,9 +413,7 @@ void showInfo()
 {
     printf(
     "\n"
-    "+----------------------------------------------------------------+\n"
-    "| Board revision and MAC address                         - [ ] x |\n"
-    "+================================================================+\n"
+    "  Board Information\n"
     "\n");
     unsigned int *response = 0;
 
@@ -452,7 +447,7 @@ void showInfo()
     // Firmware revision
     mbox_buffer_setup(ADDR(mBuf), MBOX_TAG_GETFIRMWAREREVISION, &response);
     mbox_call(ADDR(mBuf), MBOX_CH_PROP);
-    printf("  Firmware revision: %dB\n\n", response[0]);
+    printf("  Firmware revision: %dB\n", response[0]);
 }
 
 
