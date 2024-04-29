@@ -11,42 +11,17 @@ void navigateCommandHistory(char *cli_buffer, int *index, int direction);
 void cli();
 
 void main() {
-    // set up serial console
+    // Initialize UART
     uart_init();
 
-    printf("\033[1;31m", "\x1b[40m");
-    // show a Welcome Message when the OS successfully boot up
-    printf(
-    " _______   _______   _______  _________   _______  ___   ___  ________  ________          \n"
-    "|\\  ___ \\ |\\  ___ \\ |\\  ___ \\|\\___   ___\\/  ___  \\|\\  \\ |\\  \\|\\  ___  \\|\\   __  \\         \n"
-    "\\ \\   __/|\\ \\   __/|\\ \\   __/\\|___ \\  \\_/__/|_/  /\\ \\  \\\\ \\  \\ \\____   \\ \\  \\|\\  \\        \n"
-    " \\ \\  \\_|/_\\ \\  \\_|/_\\ \\  \\_|/__  \\ \\  \\|__|//  / /\\ \\______  \\|____|\\  \\ \\  \\\\\\  \\       \n"
-    "  \\ \\  \\_|\\ \\ \\  \\_|\\ \\ \\  \\_|\\ \\  \\ \\  \\   /  /_/__\\|_____|\\  \\  __\\_\\  \\ \\  \\\\\\  \\      \n"
-    "   \\ \\_______\\ \\_______\\ \\_______\\  \\ \\__\\ |\\________\\     \\ \\__\\|\\_______\\ \\_______\\     \n"
-    "    \\|_______|\\|_______|\\|_______|   \\|__|  \\|_______|      \\|__|\\|_______|\\|_______|     \n"
-    "                                                                                          \n"
-    "                                                                                          \n"
-    "                                                                                          \n"
-    "  ________  ________  ________  ________  ________  ________            _____    _____     \n"
-    " |\\   ___ \\|\\   __  \\|\\   __  \\|\\   __  \\|\\   __  \\|\\   ____\\          / __  \\  / __  \\    \n"
-    " \\ \\  \\_|\\ \\ \\  \\|\\  \\ \\  \\|\\  \\ \\  \\|\\  \\ \\  \\|\\  \\ \\  \\___|_        |\\/_|\\  \\|\\/_|\\  \\   \n"
-    "  \\ \\  \\ \\\\ \\ \\  \\\\\\  \\ \\  \\\\\\  \\ \\   _  _\\ \\  \\\\\\  \\ \\_____  \\       \\|/ \\ \\  \\|/ \\ \\  \\  \n"
-    "   \\ \\  \\_\\\\ \\ \\  \\\\\\  \\ \\  \\\\\\  \\ \\  \\\\  \\\\ \\  \\\\\\  \\|____|\\  \\           \\ \\  \\   \\ \\  \\ \n"
-    "    \\ \\_______\\ \\_______\\ \\_______\\ \\__\\\\ _\\\\ \\_______\\____\\_\\  \\           \\ \\__\\   \\ \\__\\\n"
-    "     \\|_______|\\|_______|\\|_______|\\|__|\\|__|\\|_______|\\_________\\           \\|__|    \\|__|\n"
-    "                                                      \\|_________|                         \n"
-    "                                                                                          \n"
-    " Developed by <Nguyen Ngoc Luong> - <S3927460>\n"
-    " DoorOS 11 - 2024 LuongCorp.LLC All rights reserved.\n\n"); 
-
-
-    printf("\033[1;37m", "\x1b[40m");
+    // Print welcome message
+    home();
     printf("DoorOS> ");
 
+    // Command Line Interpreter
     while (1) {
         cli();
     }
-
 }
 
 // Function to handle the command history navigation
@@ -85,16 +60,18 @@ void cli() {
 
     char c = uart_getc();
 
-
+    // Ignore non-printable characters
     if ((c != '\0' && (c != '\b' && c != 0x7F && c != 0x08)) && (c != '+' && c != '_')) {
         uart_sendc(c);
         
     }
-    if (c != '=' && c != '-' && accessHistory == 1) {
+    
+    if (c != '=' && c != '-' && accessHistory == 1) { // Reset the history access tracker
         accessHistory = 0;
         CMD_TRACKER_INDEX = LAST_STATE_TRACKER_INDEX;
     }
 
+    // Process the command when Enter is pressed
     if (c == '\n' || index >= MAX_CMD_SIZE - 1) {
         if (c == '\n') {
             cli_buffer[index] = '\0';
@@ -128,7 +105,7 @@ void cli() {
         }
         accessHistory = 0;
         LAST_STATE_TRACKER_INDEX = CMD_TRACKER_INDEX;
-    } else if (c == '\t') {
+    } else if (c == '\t') { // Tab completion
         autoComplete(cli_buffer, &index);
     } else if (c == 0x7F || c == 0x08 || c == '\b') {
         if (index > 0) {
