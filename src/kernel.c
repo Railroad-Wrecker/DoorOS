@@ -66,7 +66,7 @@ void cli() {
         
     }
     
-    if (c != '=' && c != '-' && accessHistory == 1) { // Reset the history access tracker
+    if (c != '+' && c != '_' && accessHistory == 1) { // Reset the history access tracker
         accessHistory = 0;
         CMD_TRACKER_INDEX = LAST_STATE_TRACKER_INDEX;
     }
