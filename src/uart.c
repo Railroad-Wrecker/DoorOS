@@ -69,13 +69,31 @@ void uart_init()
  */
 void uart_set_baud_rate(unsigned int baud_rate)
 {
+    // Wait for the end of transmission or reception to avoid corruption
+    while(UART0_FR & UART_FR_BUSY) {
+        asm volatile("nop");
+    }
+
+    // Disable the UART before making changes
+    UART0_CR = 0x0;
+
+    // If FIFOs are enabled, flush them here
+    if (UART0_LCRH & UART0_LCRH_FEN) {
+        UART0_LCRH &= ~UART0_LCRH_FEN; // Clear FIFO enable bit
+        // Flush the FIFOs by clearing the FIFO enable bit in the line control register
+    }
+
     unsigned int ibrd, fbrd, divider;
     divider = UART_CLOCK / (16 * baud_rate);
-    ibrd = divider;                       // Integer part of divider
-    fbrd = (divider - ibrd) * 64 + 0.5;   // Fractional part of divider
+    ibrd = (unsigned int)(divider);                 // Integer part of divider
+    fbrd = (unsigned int)((divider - ibrd) * 64 + 0.5); // Fractional part of divider, rounded
 
+    // Set integer and fractional parts of baud rate
     UART0_IBRD = ibrd;
     UART0_FBRD = fbrd;
+
+    // Re-enable the UART with the new baud rate
+    UART0_CR = 0x301; // Enable Tx, Rx, FIFO
 }
 
 // Function to set the number of data bits

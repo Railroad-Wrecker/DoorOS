@@ -148,7 +148,11 @@
 /* TDR = Test Data Register */
 #define UART0_TDR	(* (volatile unsigned int*)(UART0_BASE + 0x8C))
 
+/* UART0_LCRH register bitmasks */
 #define UART0_LCRH_WLEN_MASK (3 << 5)
+
+/* UART0_FR register bitmasks */
+#define UART_FR_BUSY (1 << 3)
 
 /* Function prototypes */
 void uart_init();
@@ -159,10 +163,8 @@ unsigned int set_parity(char parity);
 unsigned int set_stop_bits(unsigned int stop_bits);
 unsigned int set_rts_cts(char rts_cts);
 
-
 void uart_sendc(char c);
 char uart_getc();
 void uart_puts(char *s);
 void uart_hex(unsigned int num);
 void uart_dec(int num);
-
