@@ -43,7 +43,7 @@ Enhanced UART driver to support various configurations:
 - Baud rates: 9600, 19200, 38400, 57600, 115200 bps.
 - Data bits: 5, 6, 7, 8.
 - Stop bits: 1 or 2.
-- Parity: None, Even, Odd.
+- Parity: None, Even, Odd. 
 - Handshaking: CTS/RTS.
 
 ## Contributors
