@@ -416,38 +416,24 @@ void showInfo()
     "  Board Information\n"
     "\n");
     unsigned int *response = 0;
-
+    unsigned int address[6];
+    
     // Board MAC address
     mbox_buffer_setup(ADDR(mBuf), MBOX_TAG_MACADDR, &response);
     mbox_call(ADDR(mBuf), MBOX_CH_PROP);
-    unsigned int address[6];
-    address[0] = (response[1] >> 8) & 0xFF; // extract the most significant byte (1st byte)
-    address[1] = (response[1]) & 0xFF; // 2nd byte
-    address[2] = (response[0] >> 24) & 0xFF; // 3rd byte
-    address[3] = (response[0] >> 16) & 0xFF; // 4th byte
-    address[4] = (response[0] >> 8) & 0xFF; // 5th byte (1st byte of the 2nd half of the MAC address)
-    address[5] = (response[0]) & 0xFF; // 6th byte (2nd byte of the 2nd half of the MAC address)
+
+    address[0] = (response[1] >> 8) & 0xFF; 
+    address[1] = (response[1]) & 0xFF; 
+    address[2] = (response[0] >> 24) & 0xFF; 
+    address[3] = (response[0] >> 16) & 0xFF; 
+    address[4] = (response[0] >> 8) & 0xFF; 
+    address[5] = (response[0]) & 0xFF; 
     printf("  Board MAC address: %x:%x:%x:%x:%x:%x\n\n", address[0], address[1], address[2], address[3], address[4], address[5]);
 
     // Board revision
     mbox_buffer_setup(ADDR(mBuf), MBOX_TAG_GETBOARDREVISION, &response);
     mbox_call(ADDR(mBuf), MBOX_CH_PROP);
     printf("  Board revision: %x\n\n", response[0]);
-
-    // ARM clock rate
-    mbox_buffer_setup(ADDR(mBuf), MBOX_TAG_GETCLKRATE, &response, 3);
-    mbox_call(ADDR(mBuf), MBOX_CH_PROP);
-    printf("  ARM clock rate: %dHz\n\n", response[0]);
-
-    // VC memory
-    mbox_buffer_setup(ADDR(mBuf), MBOX_TAG_VCMEMORY, &response);
-    mbox_call(ADDR(mBuf), MBOX_CH_PROP);
-    printf("  VC memory: %dB\n\n", response[0]);
-
-    // Firmware revision
-    mbox_buffer_setup(ADDR(mBuf), MBOX_TAG_GETFIRMWAREREVISION, &response);
-    mbox_call(ADDR(mBuf), MBOX_CH_PROP);
-    printf("  Firmware revision: %dB\n", response[0]);
 }
 
 
