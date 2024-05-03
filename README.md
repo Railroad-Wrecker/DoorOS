@@ -48,4 +48,4 @@ Enhanced UART driver to support various configurations:
 This project is developed by Luong Nguyen as the second project for the EEET2490 Embedded System: OS and Interfacing course at RMIT, for further questions contact S3927460@student.rmit.edu.au
 
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details
+This project is licensed under the MIT License - see the LICENSE file for details 
